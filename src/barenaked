@@ -11,6 +11,9 @@ import pprint
 import sys
 import yaml
 
+import editor
+import parser
+
 # Constants
 __app__ = "BareNaked"
 __version__ = "0.1"
@@ -19,16 +22,14 @@ __author__ = "Jorge A Gallegos <kad@blegh.net>"
 # Logging
 logging.basicConfig(format="%(filename)s:%(lineno)d - "
                     "%(levelname)s: %(message)s")
-LOGGER = logging.getLogger(__app__)
-LOGGER.setLevel(logging.WARNING)
-
 class BareNaked():
 
     config = None
     workdir = None
+    logger = logging.getLogger(__app__)
 
     def __init__(self):
-        pass
+        self.logger.setLevel(logging.WARNING)
 
     def _load_config(self, config_file):
         """
@@ -41,8 +42,11 @@ class BareNaked():
             fh.close()
             return True
         except Exception, e:
-            LOGGER.warn(str(e))
+            self.logger.warn(str(e))
             return False
+
+    def set_debug(self, debug=True):
+        self.logger.setLevel(logging.DEBUG)
 
 def main():
     # This module should only be imported if called from the cli
@@ -68,6 +72,7 @@ def main():
 
     if options.editor:
         editor = BareNakedEditor()
+        editor.set_debug()
         editor.run()
 
     if options.parser:
@@ -79,5 +84,4 @@ if __name__ == "__main__":
     try:
         main()
     except Exception, e:
-        LOGGER.error(e)
-        sys.exit(1)
+        print str(e)
