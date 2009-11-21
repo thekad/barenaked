@@ -1,13 +1,15 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
-# vim: ai ts=4 sts=4 et sw=4
+# -*- mode: python; sh-basic-offset: 4; indent-tabs-mode: nil; coding: utf-8 -*-
+# vim: tabstop=4 softtabstop=4 expandtab shiftwidth=4 fileencoding=utf-8
 #
 # Bare Naked Blog
 # Copyright 2009, Jorge A Gallegos <kad@blegh.net>
 
 import logging
 import os
+import shutil
 import sys
+import tempfile
 import yaml
 
 import constants
@@ -26,7 +28,12 @@ class BareNaked():
     workdir = None
 
     def __init__(self):
-        pass
+        self.workdir = tempfile.mkdtemp(prefix=constants.app_name)
+        LOGGER.debug("Work directory %s created" % self.workdir)
+
+    def __destroy__(self):
+        LOGGER.debug("Cleaning up %s" % self.workdir)
+        shutil.rmtree(self.workdir)
 
     def _load_config(self, config_file):
         """

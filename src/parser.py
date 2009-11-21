@@ -1,6 +1,6 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
-# vim: ai ts=4 sts=4 et sw=4
+# -*- mode: python; sh-basic-offset: 4; indent-tabs-mode: nil; coding: utf-8 -*-
+# vim: tabstop=4 softtabstop=4 expandtab shiftwidth=4 fileencoding=utf-8
 #
 # Bare Naked Blog
 # Copyright 2009, Jorge A Gallegos <kad@blegh.net>
