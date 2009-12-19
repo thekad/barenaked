@@ -31,7 +31,7 @@ class BareNaked():
         self.workdir = tempfile.mkdtemp(prefix=constants.app_name)
         LOGGER.debug("Work directory %s created" % self.workdir)
 
-    def __destroy__(self):
+    def cleanup(self):
         LOGGER.debug("Cleaning up %s" % self.workdir)
         shutil.rmtree(self.workdir)
 
@@ -69,23 +69,24 @@ def main():
     #parser.add_options("-l", "--plugins")
     (options, args) = op.parse_args()
 
-    # Validate at least one mode
-    if not options.editor and not options.parser:
-        raise ValueError("You have to start either in editor or parser mode")
+    try:
+        # Validate at least one mode
+        if not options.editor and not options.parser:
+            raise ValueError("You have to start either in editor or parser mode")
 
-    if options.editor:
-        import editor
-        e = editor.Editor()
-        e.run()
-
-    if options.parser:
-        import parser
-        config = os.path.abspath(options.config)
-        p = parser.Parser(config)
-        p.run()
+        if options.editor:
+            import editor
+            bn = editor.Editor()
+        if options.parser:
+            import parser
+            config = os.path.abspath(options.config)
+            bn = parser.Parser(config)
+        bn.run()
+    except Exception, ex:
+        LOGGER.error(str(ex))
+        if bn:
+            bn.cleanup()
 
 if __name__ == "__main__":
-    try:
-        main()
-    except Exception, e:
-        LOGGER.error(e)
+    main()
+

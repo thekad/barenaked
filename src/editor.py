@@ -6,8 +6,10 @@
 # Copyright 2009, Jorge A Gallegos <kad@blegh.net>
 
 import logging
+import os
 import subprocess
 
+import errors
 import constants
 import barenaked
 
@@ -23,7 +25,8 @@ title:
 # to be used (i.e. if this post is in the future)
 # Date must be in rfc2822, i.e. date -R (TZ is ignored)
 #date:
-# Author username must exist in the global config file to be parsed
+# Author username must exist in the global config file to
+# be parsed (defaults to $USER)
 author:
 # If you want to override your global comment settings, say Yes or No
 #comments:
@@ -41,12 +44,31 @@ class Editor(barenaked.BareNaked):
 
     def set_editor(self, editor=None):
         if editor:
+            LOGGER.debug("Editor from param")
             self.editor = editor
             return
         if "EDITOR" in os.environ.keys():
+            LOGGER.debug("Editor from env")
             self.editor = os.environ["EDITOR"]
             return
+
+    def place_files(self):
+        f = os.path.join(self.workdir, "meta.yaml")
+        LOGGER.debug("Writing file %s" % f)
+        meta = open(f, "wb")
+        meta.write(META_TMPL)
+        meta.close()
+
     def run(self):
-        if editor:
+        self.set_editor()
+        self.place_files()
+        LOGGER.info("Running editor %s" % self.editor)
+        if self.editor:
             files = "%(wd)s/meta.yaml %(wd)s/body.txt" % ({"wd": self.workdir})
-            subprocess.Popen()
+            cmd = "%s %s" % (self.editor, files)
+            LOGGER.debug("Command is: %s" % cmd)
+            p = subprocess.Popen(cmd)
+            sts = os.waitpid(p.pid, 0)[1]
+        else:
+            raise errors.InvalidEditorError("Can't fire up editor %s" % self.editor)
+
