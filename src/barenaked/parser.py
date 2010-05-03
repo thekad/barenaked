@@ -8,8 +8,8 @@
 import logging
 import pprint
 
-import constants
-import barenaked
+from barenaked import constants
+from barenaked import barenaked
 
 LOGGER = logging.getLogger(constants.app_name)
 

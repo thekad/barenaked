@@ -7,4 +7,5 @@
 
 app_name = "BareNaked"
 app_version = "0.1"
-author = "Jorge A Gallegos <kad@blegh.net>"
+author = "Jorge A Gallegos"
+author_email = "<kad@blegh.net>"
