@@ -12,7 +12,7 @@ import sys
 import tempfile
 import yaml
 
-from barenaked import constants
+import constants
 
 # Logging stuff
 format="%(filename)s:%(lineno)d - %(levelname)s: %(message)s"
@@ -76,10 +76,10 @@ def main():
             raise ValueError("You have to start either in editor or parser mode")
 
         if options.editor:
-            from barenaked import editor
+            import editor
             bn = editor.Editor()
         if options.parser:
-            from barenaked import parser
+            import parser
             config = os.path.abspath(options.config)
             bn = parser.Parser(config)
         bn.run()

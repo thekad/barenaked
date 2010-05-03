@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-from barenaked import errors
 # -*- mode: python; sh-basic-offset: 4; indent-tabs-mode: nil; coding: utf-8 -*-
 # vim: tabstop=4 softtabstop=4 expandtab shiftwidth=4 fileencoding=utf-8
 #
@@ -10,9 +9,9 @@ import logging
 import os
 import subprocess
 
-from barenaked import barenaked
-from barenaked import constants
-from barenaked import errors
+import barenaked
+import constants
+import errors
 
 LOGGER = logging.getLogger(constants.app_name)
 

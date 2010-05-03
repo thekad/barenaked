@@ -13,12 +13,16 @@ setuptools.setup (
     package_dir = { '': 'src' },
     packages = setuptools.find_packages("src"),
     zip_safe = True,
-    scripts = [ "src/scripts/barenaked" ],
     install_requires = [
         "cheetah>=2.2.2",
         "Markdown>=2.0.3",
         "PyYAML>=3.09",
     ],
+    entry_points = {
+        "console_scripts": [
+            "barenaked = barenaked.barenaked:main",
+        ],
+    },
     author = "Jorge A Gallegos",
     author_email = "kad@blegh.net",
     description = "A no-bullcrap blog engine",
