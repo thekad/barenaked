@@ -14,7 +14,7 @@ setuptools.setup (
     packages = setuptools.find_packages("src"),
     zip_safe = True,
     install_requires = [
-        "cheetah>=2.2.2",
+        "jinja2>=2.2.0",
         "Markdown>=2.0.3",
         "PyYAML>=3.09",
     ],

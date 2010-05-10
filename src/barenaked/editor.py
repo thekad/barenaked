@@ -15,8 +15,7 @@ import errors
 
 LOGGER = logging.getLogger(constants.app_name)
 
-META_TMPL = """
----
+META_TMPL = """---
 # -*- mode: python; sh-basic-offset: 2; indent-tabs-mode: nil; coding: utf-8 -*-
 # vim: tabstop=2 softtabstop=2 expandtab shiftwidth=2 fileencoding=utf-8
 
@@ -27,7 +26,7 @@ title:
 #date:
 # Author username must exist in the global config file to
 # be parsed (defaults to $USER)
-author:
+author: %(user)s
 # If you want to override your global comment settings, say Yes or No
 #comments:
 # You can specify a list of tags here
@@ -56,8 +55,12 @@ class Editor(barenaked.BareNaked):
         f = os.path.join(self.workdir, "meta.yaml")
         LOGGER.debug("Writing file %s" % f)
         meta = open(f, "wb")
-        meta.write(META_TMPL)
+        meta.write(META_TMPL % {"user": os.getenv("USER")})
         meta.close()
+        f = os.path.join(self.workdir, "body.yaml")
+        LOGGER.debug("Writing file %s" % f)
+        body = open(f, "wb")
+        body.close()
 
     def run(self):
         self.set_editor()
@@ -67,7 +70,8 @@ class Editor(barenaked.BareNaked):
             files = "%(wd)s/meta.yaml %(wd)s/body.txt" % ({"wd": self.workdir})
             cmd = "%s %s" % (self.editor, files)
             LOGGER.debug("Command is: %s" % cmd)
-            p = subprocess.Popen(cmd)
+            p = subprocess.Popen(cmd, shell=True)
+            LOGGER.debug("Waiting for subprocess to come back...")
             sts = os.waitpid(p.pid, 0)[1]
         else:
             raise errors.InvalidEditorError("Can't fire up editor %s" % self.editor)

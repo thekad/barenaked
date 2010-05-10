@@ -83,6 +83,7 @@ def main():
             config = os.path.abspath(options.config)
             bn = parser.Parser(config)
         bn.run()
+        bn.cleanup()
     except Exception, ex:
         LOGGER.error(str(ex))
         if bn:
