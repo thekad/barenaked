@@ -16,12 +16,9 @@ LOGGER = logging.getLogger(constants.app_name)
 class Parser(barenaked.BareNaked):
 
     def __init__(self, config_file):
-        barenaked.BareNaked.__init__(self)
-        if not self._load_config(config_file):
-            raise ConfigNotFoundError("Config file '%s' was not found or is invalid" % config_file)
+        barenaked.BareNaked.__init__(self, config_file)
 
     def run(self, output=None):
-        LOGGER.debug("tst")
-        if not output and not "output" in self.config.keys():
-            raise UndefinedOutputError("The parser needs an output directory")
+        if not output and not 'output' in self.config.keys():
+            raise UndefinedOutputError('The parser needs an output directory')
         pprint.pprint(self.config)

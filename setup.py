@@ -6,27 +6,28 @@
 # Copyright 2009, Jorge A Gallegos <kad@blegh.net>
 
 import setuptools
+from src.barenaked import constants
 
 setuptools.setup (
-    name = "BareNaked",
-    version = "0.1",
+    name = constants.app_name,
+    version = constants.app_version,
     package_dir = { '': 'src' },
-    packages = setuptools.find_packages("src"),
+    packages = setuptools.find_packages('src'),
     zip_safe = True,
     install_requires = [
-        "jinja2>=2.2.0",
-        "Markdown>=2.0.3",
-        "PyYAML>=3.09",
+        'jinja2>=2.2.0',
+        'Markdown>=2.0.3',
+        'PyYAML>=3.09',
     ],
     entry_points = {
-        "console_scripts": [
-            "barenaked = barenaked.barenaked:main",
+        'console_scripts': [
+            'barenaked = barenaked.barenaked:main',
         ],
     },
-    author = "Jorge A Gallegos",
-    author_email = "kad@blegh.net",
-    description = "A no-bullcrap blog engine",
-    license = "MIT",
-    keywords = "blog html",
-    url = "http://github.com/thekad/barenaked",
+    author = constants.author,
+    author_email = constants.author_email,
+    description = 'A no-bullcrap blog engine',
+    license = 'MIT',
+    keywords = 'blog html',
+    url = 'http://github.com/thekad/barenaked',
 )

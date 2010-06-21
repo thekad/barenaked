@@ -5,7 +5,7 @@
 # Bare Naked Blog
 # Copyright 2009, Jorge A Gallegos <kad@blegh.net>
 
-app_name = "BareNaked"
-app_version = "0.1"
-author = "Jorge A Gallegos"
-author_email = "<kad@blegh.net>"
+app_name = 'BareNaked'
+app_version = '0.1'
+author = 'Jorge A Gallegos'
+author_email = '<kad@blegh.net>'

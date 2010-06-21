@@ -5,6 +5,7 @@
 # Bare Naked Blog
 # Copyright 2009, Jorge A Gallegos <kad@blegh.net>
 
+from datetime import datetime
 import logging
 import os
 import subprocess
@@ -16,7 +17,7 @@ import errors
 LOGGER = logging.getLogger(constants.app_name)
 
 META_TMPL = """---
-# -*- mode: python; sh-basic-offset: 2; indent-tabs-mode: nil; coding: utf-8 -*-
+# -*- mode: yaml; sh-basic-offset: 2; indent-tabs-mode: nil; coding: utf-8 -*-
 # vim: tabstop=2 softtabstop=2 expandtab shiftwidth=2 fileencoding=utf-8
 
 title:
@@ -37,42 +38,54 @@ tags:
 class Editor(barenaked.BareNaked):
 
     editor = None
+    post_date = None
 
-    def __init__(self, config_file=None):
-        barenaked.BareNaked.__init__(self)
+    def __init__(self, config_file):
+        barenaked.BareNaked.__init__(self, config_file)
+        self.post_date = datetime.now()
 
     def set_editor(self, editor=None):
+        LOGGER.debug(editor)
         if editor:
-            LOGGER.debug("Editor from param")
+            LOGGER.debug('Editor from config')
             self.editor = editor
             return
-        if "EDITOR" in os.environ.keys():
-            LOGGER.debug("Editor from env")
-            self.editor = os.environ["EDITOR"]
+        if 'EDITOR' in os.environ.keys():
+            LOGGER.debug('Editor from env')
+            self.editor = os.environ['EDITOR']
             return
 
     def place_files(self):
-        f = os.path.join(self.workdir, "meta.yaml")
-        LOGGER.debug("Writing file %s" % f)
-        meta = open(f, "wb")
-        meta.write(META_TMPL % {"user": os.getenv("USER")})
+        f = os.path.join(self.workdir, 'meta.yaml')
+        LOGGER.debug('Writing file %s' % f)
+        meta = open(f, 'wb')
+        meta.write(META_TMPL % {'user': self.user})
         meta.close()
-        f = os.path.join(self.workdir, "body.yaml")
-        LOGGER.debug("Writing file %s" % f)
-        body = open(f, "wb")
+        f = os.path.join(self.workdir, 'body.yaml')
+        LOGGER.debug('Writing file %s' % f)
+        body = open(f, 'wb')
+        body.close()
+
+    def parse_body(self):
+        f = os.path.join(self.workdir, 'body.yaml')
+        body = open(f, 'rb')
         body.close()
 
     def run(self):
-        self.set_editor()
+        LOGGER.debug(self.config)
+        if 'editor' in self.config.keys():
+            self.set_editor(self.config['editor'])
+        else:
+            self.set_editor()
         self.place_files()
-        LOGGER.info("Running editor %s" % self.editor)
+        LOGGER.info('Running editor %s' % self.editor)
         if self.editor:
-            files = "%(wd)s/meta.yaml %(wd)s/body.txt" % ({"wd": self.workdir})
-            cmd = "%s %s" % (self.editor, files)
-            LOGGER.debug("Command is: %s" % cmd)
+            files = '%(wd)s/meta.yaml %(wd)s/body.txt' % ({'wd': self.workdir})
+            cmd = '%s %s' % (self.editor, files)
+            LOGGER.debug('Command is: %s' % cmd)
             p = subprocess.Popen(cmd, shell=True)
-            LOGGER.debug("Waiting for subprocess to come back...")
+            LOGGER.debug('Waiting for subprocess to come back...')
             sts = os.waitpid(p.pid, 0)[1]
         else:
-            raise errors.InvalidEditorError("Can't fire up editor %s" % self.editor)
+            raise errors.InvalidEditorError('Cannot fire up editor %s' % self.editor)
 
