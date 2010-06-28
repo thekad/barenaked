@@ -75,8 +75,9 @@ def main():
     op.add_option('-p', '--parser', dest='parser',
                   action='store_true', default=False,
                   help='Parse the contents of the source dir')
-    op.add_option('-c', '--config', dest='config', default='config.yml',
-                  help='Configuration YAML file to use (defaults to config.yml)')
+    op.add_option('-c', '--config', dest='config',
+                  default=os.path.join(os.environ['HOME'], '.barerc'),
+                  help='Configuration YAML file to use (defaults to ~/.barerc)')
     op.add_option('-o', '--output', dest='output',
                   help='Overrides the output directive from the config file')
     op.add_option('-r', '--rebuild', dest='rebuild', default=False,
@@ -87,6 +88,7 @@ def main():
 
     bn = None
     config = os.path.abspath(options.config)
+
     try:
         # Validate at least one mode
         if not options.editor and not options.parser:
