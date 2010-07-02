@@ -7,6 +7,8 @@
 
 import logging
 import pprint
+import re
+import unicodedata
 
 import barenaked
 import constants
@@ -22,3 +24,27 @@ class Parser(barenaked.BareNaked):
         if not output and not 'output' in self.config.keys():
             raise UndefinedOutputError('The parser needs an output directory')
         pprint.pprint(self.config)
+
+    def _build_url(self, title):
+        return "%s/%d/%d/%d/%s" % (self.config['url'],
+            today.year, today.month, today.day,
+            self._slugify(title))
+
+    def _slugify(self, title):
+        strip_re = re.compile(r'[^\w\s-]')
+        hyphenate_re = re.compile(r'[-\s]+')
+        if not isinstance(title, unicode):
+            title = unicode(title)
+        title = unicodedata.normalize('NFKD', title).encode('ascii', 'ignore')
+        title = unicode(strip_re.sub('', title).strip().lower())
+        return hyphenate_re.sub('-', title)
+
+    def load_post(self):
+        f = os.path.join(self.workdir, 'meta.yaml')
+        meta = open(f, 'rb')
+        meta.close()
+        f = os.path.join(self.workdir, 'body.txt')
+        LOGGER.debug('Writing file %s' % f)
+        body = open(f, 'wb')
+        body.close()
+

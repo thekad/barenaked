@@ -61,13 +61,13 @@ class Editor(barenaked.BareNaked):
         meta = open(f, 'wb')
         meta.write(META_TMPL % {'user': self.user})
         meta.close()
-        f = os.path.join(self.workdir, 'body.yaml')
+        f = os.path.join(self.workdir, 'body.txt')
         LOGGER.debug('Writing file %s' % f)
         body = open(f, 'wb')
         body.close()
 
     def parse_body(self):
-        f = os.path.join(self.workdir, 'body.yaml')
+        f = os.path.join(self.workdir, 'body.txt')
         body = open(f, 'rb')
         body.close()
 
