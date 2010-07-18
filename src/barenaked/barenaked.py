@@ -61,7 +61,7 @@ class BareNaked():
             self.config = yaml.load(fh)
             fh.close()
             return True
-        except Exception, e:
+        except Exception as e:
             LOGGER.warn(str(e))
             return False
 
@@ -86,6 +86,9 @@ def main():
     #parser.add_options('-l', '--plugins')
     (options, args) = op.parse_args()
 
+    if len(sys.argv) < 2:
+        op.print_help()
+        sys.exit(0)
     bn = None
     config = os.path.abspath(options.config)
 
@@ -93,7 +96,6 @@ def main():
         # Validate at least one mode
         if not options.editor and not options.parser:
             raise ValueError('You have to start either in editor or parser mode')
-
         if options.editor:
             import editor
             bn = editor.Editor(config)
@@ -103,11 +105,11 @@ def main():
         bn.set_user(options.user)
         bn.run()
         bn.cleanup()
-    except Exception, ex:
+    except Exception as ex:
         LOGGER.error(str(ex))
         if bn:
             bn.cleanup()
 
 if __name__ == '__main__':
-    main()
+    sys.exit(main())
 
