@@ -5,10 +5,13 @@
 # Bare Naked Blog
 # Copyright 2009, Jorge A Gallegos <kad@blegh.net>
 
+import codecs
 from datetime import datetime
+import errno
 import logging
 import os
 import subprocess
+import yaml
 
 import barenaked
 import constants
@@ -16,7 +19,7 @@ import errors
 
 LOGGER = logging.getLogger(constants.app_name)
 
-META_TMPL = """---
+META_TMPL = '''---
 # -*- mode: yaml; sh-basic-offset: 2; indent-tabs-mode: nil; coding: utf-8 -*-
 # vim: tabstop=2 softtabstop=2 expandtab shiftwidth=2 fileencoding=utf-8
 
@@ -33,16 +36,17 @@ author: %(user)s
 # You can specify a list of tags here
 tags:
   - general
-"""
+'''
 
 class Editor(barenaked.BareNaked):
 
     editor = None
-    post_date = None
+    post = None
+    date = None
 
     def __init__(self, config_file):
         barenaked.BareNaked.__init__(self, config_file)
-        self.post_date = datetime.now()
+        self.date = datetime.now()
 
     def set_editor(self, editor=None):
         LOGGER.debug(editor)
@@ -58,18 +62,48 @@ class Editor(barenaked.BareNaked):
     def place_files(self):
         f = os.path.join(self.workdir, 'meta.yaml')
         LOGGER.debug('Writing file %s' % f)
-        meta = open(f, 'wb')
+        meta = codecs.open(f, 'wb', encoding='utf-8')
         meta.write(META_TMPL % {'user': self.user})
         meta.close()
         f = os.path.join(self.workdir, 'body.txt')
         LOGGER.debug('Writing file %s' % f)
-        body = open(f, 'wb')
+        body = codecs.open(f, 'wb', encoding='utf-8')
+        body.write('# Write your body post here')
         body.close()
 
-    def parse_body(self):
+    def parse_post(self):
         f = os.path.join(self.workdir, 'body.txt')
-        body = open(f, 'rb')
-        body.close()
+        f = codecs.open(f, 'rb', encoding='utf-8')
+        body = f.read()
+        f.close()
+        f = os.path.join(self.workdir, 'meta.yaml')
+        f = codecs.open(f, 'rb', encoding='utf-8')
+        meta = f.read()
+        f.close()
+        self.post = yaml.load(meta)
+        self.post['body'] = body
+        LOGGER.debug(self.post)
+
+    def save_post(self):
+#       Create the source directory if it doesn't exist
+        self.parse_post()
+        post_path = os.path.join(self.config['source'],
+            str(self.date.year),
+            '%02d' % self.date.month,
+            '%02d' % self.date.day)
+        LOGGER.debug('Creating the directory %s' % post_path)
+        try:
+            os.makedirs(post_path)
+        except OSError as ose:
+            if exc.errno == errno.EEXIST:
+                pass
+            else:
+                raise
+        post_path = os.path.join(post_path, 'post.yaml')
+        f = codecs.open(post_path, 'wb', encoding='utf-8')
+        LOGGER.debug('Writing post.yaml')
+        f.write(yaml.dump(self.post, default_flow_style=False, encoding='utf-8'))
+        f.close()
 
     def run(self):
         LOGGER.debug(self.config)
@@ -80,12 +114,13 @@ class Editor(barenaked.BareNaked):
         self.place_files()
         LOGGER.info('Running editor %s' % self.editor)
         if self.editor:
-            files = '%(wd)s/meta.yaml %(wd)s/body.txt' % ({'wd': self.workdir})
+            files = '%(wd)s/meta.yaml %(wd)s/body.txt' % {'wd': self.workdir}
             cmd = '%s %s' % (self.editor, files)
             LOGGER.debug('Command is: %s' % cmd)
             p = subprocess.Popen(cmd, shell=True)
             LOGGER.debug('Waiting for subprocess to come back...')
             sts = os.waitpid(p.pid, 0)[1]
+            self.save_post()
         else:
             raise errors.InvalidEditorError('Cannot fire up editor %s' % self.editor)
 
