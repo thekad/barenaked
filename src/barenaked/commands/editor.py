@@ -44,8 +44,8 @@ class Editor(base.BareNaked):
     post = None
     date = None
 
-    def __init__(self, config_file):
-        base.BareNaked.__init__(self, config_file)
+    def __init__(self):
+        base.BareNaked.__init__(self)
         self.date = datetime.now()
 
     def set_editor(self, editor=None):
@@ -105,7 +105,12 @@ class Editor(base.BareNaked):
         f.write(yaml.dump(self.post, default_flow_style=False, encoding='utf-8'))
         f.close()
 
+    def add_subparser(self, subparsers):
+        parser = self._setup_subparser(subparsers)
+        parser.add_argument('--source', help='Overrides the "source" directive from the config file')
+
     def run(self):
+        self.setup_workdir()
         LOGGER.debug(self.config)
         if 'editor' in self.config.keys():
             self.set_editor(self.config['editor'])

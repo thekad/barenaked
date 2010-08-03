@@ -17,11 +17,11 @@ LOGGER = logging.getLogger(constants.app_name)
 
 class Parser(base.BareNaked):
 
-    def __init__(self, config_file):
-        base.BareNaked.__init__(self, config_file)
+    def __init__(self):
+        base.BareNaked.__init__(self)
 
-    def run(self, output=None):
-        if not output and not 'output' in self.config.keys():
+    def run(self):
+        if not 'output' in self.config.keys():
             raise UndefinedOutputError('The parser needs an output directory')
         pprint.pprint(self.config)
 
@@ -47,4 +47,8 @@ class Parser(base.BareNaked):
         LOGGER.debug('Writing file %s' % f)
         body = open(f, 'wb')
         body.close()
+
+    def add_subparser(self, subparsers):
+        parser = self._setup_subparser(subparsers)
+        parser.add_argument('--output', help='Overrides the "output" directive from the config file')
 

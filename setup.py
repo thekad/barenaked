@@ -18,6 +18,7 @@ setuptools.setup (
         'jinja2>=2.2.0',
         'Markdown>=2.0.3',
         'PyYAML>=3.09',
+        'argparse'
     ],
     entry_points = {
         'console_scripts': [
@@ -26,7 +27,7 @@ setuptools.setup (
     },
     author = constants.author,
     author_email = constants.author_email,
-    description = 'A no-bullcrap blog engine',
+    description = constants.app_desc,
     license = 'MIT',
     keywords = 'blog html',
     url = 'http://github.com/thekad/barenaked',

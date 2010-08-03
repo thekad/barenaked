@@ -30,27 +30,19 @@ class BareNaked():
     user = None
     output = None
 
-    def __init__(self, config_file):
+    def __init__(self):
+        pass
+
+    def setup_workdir(self):
         self.workdir = tempfile.mkdtemp(prefix=constants.app_name)
         LOGGER.debug('Work directory %s created' % self.workdir)
-        if not self._load_config(config_file):
-            self.cleanup()
-            raise errors.ConfigNotFoundError('Config file "%s" was not found or is invalid' % config_file)
 
     def cleanup(self):
-        LOGGER.debug('Cleaning up %s' % self.workdir)
-        shutil.rmtree(self.workdir)
+        if self.workdir:
+            LOGGER.debug('Cleaning up %s' % self.workdir)
+            shutil.rmtree(self.workdir)
 
-    def set_user(self, user=None):
-        if user:
-            self.user = user
-        else:
-            self.user = os.getenv('USER')
-
-    def set_output(self, output):
-        self.output = output
-
-    def _load_config(self, config_file):
+    def load_config(self, config_file):
         '''
         Loads the properties YAML file
         '''
@@ -60,55 +52,60 @@ class BareNaked():
             fh = open(config_file)
             self.config = yaml.load(fh)
             fh.close()
-            return True
         except Exception as e:
-            LOGGER.warn(str(e))
-            return False
+            LOGGER.error(str(e))
+            raise errors.ConfigNotFoundError('Config file "%s" was not found or is invalid' % config_file)
+
+    def run(self):
+        raise NotImplementedError
+
+    def process_args(self, args):
+        pass
+
+    def add_subparser(self, subparsers):
+        pass
+
+    def _setup_subparser(self, subparsers):
+        parser = subparsers.add_parser(self.__class__.__name__.lower(),
+            help='%s command help' % self.__class__.__name__.capitalize())
+        return parser
+
+
+def demodule(module):
+    klass = "".join([_.capitalize() for _ in module.split("_")])
+    module = __import__('barenaked.commands.%s' % module, fromlist=['barenaked.commands'])
+    klass = getattr(module, klass)
+    return klass
 
 def main():
-    # This module should only be imported if called from the cli
-    import optparse
-    op = optparse.OptionParser(version=constants.app_version)
-    op.add_option('-e', '--editor', dest='editor',
-                  action='store_true', default=False,
-                  help='Start "editor mode"')
-    op.add_option('-p', '--parser', dest='parser',
-                  action='store_true', default=False,
-                  help='Parse the contents of the source dir')
-    op.add_option('-c', '--config', dest='config',
-                  default=os.path.join(os.environ['HOME'], '.barerc'),
-                  help='Configuration YAML file to use (defaults to ~/.barerc)')
-    op.add_option('-o', '--output', dest='output',
-                  help='Overrides the output directive from the config file')
-    op.add_option('-r', '--rebuild', dest='rebuild', default=False,
-                  help='Rebuilds the whole site')
-    op.add_option('-u', '--user', dest='user', help='Overrides the ENV user')
-    #parser.add_options('-l', '--plugins')
-    (options, args) = op.parse_args()
+    # These modules should only be imported if called from the cli
+    import argparse
+    import commands
+    parser = argparse.ArgumentParser(prog=os.path.basename(sys.argv[0]),
+                                     description=constants.app_desc)
+    parser.add_argument('-c', '--config', dest='config',
+                        help='Config file, defaults to ~/.barerc',
+                        default=os.path.join(os.environ['HOME'], '.barerc'))
+    subparsers = parser.add_subparsers(title='Commands', dest='subparser_name')
+    for module in commands.__all__:
+        klass = demodule(module)
+        klass = klass()
+        klass.add_subparser(subparsers)
+    args = parser.parse_args()
 
     if len(sys.argv) < 2:
-        op.print_help()
+        parser.print_help()
         sys.exit(0)
-    bn = None
-    config = os.path.abspath(options.config)
-
+    klass = demodule(args.subparser_name)
+    klass = klass()
     try:
-        # Validate at least one mode
-        if not options.editor and not options.parser:
-            raise ValueError('You have to start either in editor or parser mode')
-        if options.editor:
-            from commands import editor
-            bn = editor.Editor(config)
-        if options.parser:
-            from commands import parser
-            bn = parser.Parser(config)
-        bn.set_user(options.user)
-        bn.run()
-        bn.cleanup()
-    except Exception as ex:
-        LOGGER.error(str(ex))
-        if bn:
-            bn.cleanup()
+        klass.load_config(args.config)
+        klass.process_args(args)
+        klass.run()
+        klass.cleanup()
+    except Exception as e:
+        klass.cleanup()
+        LOGGER.error(str(e))
 
 if __name__ == '__main__':
     sys.exit(main())

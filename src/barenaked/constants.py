@@ -6,6 +6,7 @@
 # Copyright 2009, Jorge A Gallegos <kad@blegh.net>
 
 app_name = 'BareNaked'
-app_version = '0.1'
+app_version = '0.2'
+app_desc = "A no-bullcrap blog engine"
 author = 'Jorge A Gallegos'
 author_email = '<kad@blegh.net>'
