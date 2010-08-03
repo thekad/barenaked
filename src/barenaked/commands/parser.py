@@ -26,7 +26,7 @@ class Parser(base.BareNaked):
         pprint.pprint(self.config)
 
     def _build_url(self, title):
-        return "%s/%d/%d/%d/%s" % (self.config['url'],
+        return '%s/%d/%d/%d/%s' % (self.config['url'],
             today.year, today.month, today.day,
             self._slugify(title))
 

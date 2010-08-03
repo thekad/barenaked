@@ -72,7 +72,7 @@ class BareNaked():
 
 
 def demodule(module):
-    klass = "".join([_.capitalize() for _ in module.split("_")])
+    klass = ''.join([_.capitalize() for _ in module.split('_')])
     module = __import__('barenaked.commands.%s' % module, fromlist=['barenaked.commands'])
     klass = getattr(module, klass)
     return klass
