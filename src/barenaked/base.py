@@ -12,7 +12,6 @@ import sys
 import tempfile
 import yaml
 
-import commands
 import constants
 import errors
 

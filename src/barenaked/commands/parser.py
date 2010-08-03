@@ -10,15 +10,15 @@ import pprint
 import re
 import unicodedata
 
-from barenaked import barenaked
+from barenaked import base
 from barenaked import constants
 
 LOGGER = logging.getLogger(constants.app_name)
 
-class Parser(barenaked.BareNaked):
+class Parser(base.BareNaked):
 
     def __init__(self, config_file):
-        barenaked.BareNaked.__init__(self, config_file)
+        base.BareNaked.__init__(self, config_file)
 
     def run(self, output=None):
         if not output and not 'output' in self.config.keys():

@@ -21,7 +21,7 @@ setuptools.setup (
     ],
     entry_points = {
         'console_scripts': [
-            'barenaked = barenaked.barenaked:main',
+            'barenaked = barenaked.base:main',
         ],
     },
     author = constants.author,

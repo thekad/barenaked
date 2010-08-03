@@ -13,7 +13,7 @@ import os
 import subprocess
 import yaml
 
-from barenaked import barenaked
+from barenaked import base
 from barenaked import constants
 from barenaked import errors
 
@@ -38,14 +38,14 @@ tags:
   - general
 '''
 
-class Editor(barenaked.BareNaked):
+class Editor(base.BareNaked):
 
     editor = None
     post = None
     date = None
 
     def __init__(self, config_file):
-        barenaked.BareNaked.__init__(self, config_file)
+        base.BareNaked.__init__(self, config_file)
         self.date = datetime.now()
 
     def set_editor(self, editor=None):
