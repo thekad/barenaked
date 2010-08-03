@@ -12,6 +12,7 @@ import sys
 import tempfile
 import yaml
 
+import commands
 import constants
 import errors
 
@@ -97,10 +98,10 @@ def main():
         if not options.editor and not options.parser:
             raise ValueError('You have to start either in editor or parser mode')
         if options.editor:
-            import editor
+            from commands import editor
             bn = editor.Editor(config)
         if options.parser:
-            import parser
+            from commands import parser
             bn = parser.Parser(config)
         bn.set_user(options.user)
         bn.run()

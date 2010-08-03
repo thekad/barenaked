@@ -13,9 +13,9 @@ import os
 import subprocess
 import yaml
 
-import barenaked
-import constants
-import errors
+from barenaked import barenaked
+from barenaked import constants
+from barenaked import errors
 
 LOGGER = logging.getLogger(constants.app_name)
 
@@ -95,7 +95,7 @@ class Editor(barenaked.BareNaked):
         try:
             os.makedirs(post_path)
         except OSError as ose:
-            if exc.errno == errno.EEXIST:
+            if ose.errno == errno.EEXIST:
                 pass
             else:
                 raise

@@ -10,8 +10,8 @@ import pprint
 import re
 import unicodedata
 
-import barenaked
-import constants
+from barenaked import barenaked
+from barenaked import constants
 
 LOGGER = logging.getLogger(constants.app_name)
 
