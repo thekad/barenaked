@@ -5,6 +5,7 @@
 # Bare Naked Blog
 # Copyright 2009, Jorge A Gallegos <kad@blegh.net>
 
+import codecs
 import logging
 import os
 import shutil
@@ -14,6 +15,7 @@ import yaml
 
 import constants
 import errors
+
 
 # Logging stuff
 format='%(filename)s:%(lineno)d - %(levelname)s: %(message)s'
@@ -29,6 +31,7 @@ class BareNaked():
     workdir = None
     user = None
     output = None
+    stats = None
 
     def __init__(self):
         pass
@@ -49,12 +52,29 @@ class BareNaked():
 
         try:
             LOGGER.debug('Loading %s' % config_file)
-            fh = open(config_file)
+            fh = codecs.open(config_file)
             self.config = yaml.load(fh)
             fh.close()
         except Exception as e:
             LOGGER.error(str(e))
             raise errors.ConfigNotFoundError('Config file "%s" was not found or is invalid' % config_file)
+
+    def load_stats(self):
+        '''Loads the general stats file'''
+
+        stats_path = os.path.join(self.config['source'], 'stats.yaml')
+        LOGGER.debug('Trying to open the stats file %s' % stats_path)
+        try:
+            fh = codecs.open(stats_path, 'rb')
+            self.stats = yaml.load(fh)
+            fh.close()
+        except IOError as ioe:
+            LOGGER.debug('Not found, falling back to first-post stats')
+            self.stats = { 'last_guid': 0 }
+        except Exception as e:
+            LOGGER.debug(str(e))
+            LOGGER.error('Cannot load the stats file at %s, this is not good' % stats_path)
+            sys.exit(404)
 
     def run(self):
         raise NotImplementedError
@@ -73,6 +93,7 @@ class BareNaked():
 
 def demodule(module):
     klass = ''.join([_.capitalize() for _ in module.split('_')])
+    LOGGER.debug('Importing class %s from barenaked.commands.%s' % (klass, module))
     module = __import__('barenaked.commands.%s' % module, fromlist=['barenaked.commands'])
     klass = getattr(module, klass)
     return klass
@@ -100,6 +121,7 @@ def main():
     klass = klass()
     try:
         klass.load_config(args.config)
+        klass.load_stats()
         klass.process_args(args)
         klass.run()
         klass.cleanup()

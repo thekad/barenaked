@@ -7,11 +7,11 @@
 
 import logging
 import pprint
-import re
-import unicodedata
 
 from barenaked import base
 from barenaked import constants
+from barenaked import utils
+
 
 LOGGER = logging.getLogger(constants.app_name)
 
@@ -28,16 +28,7 @@ class Parser(base.BareNaked):
     def _build_url(self, title):
         return '%s/%d/%d/%d/%s' % (self.config['url'],
             today.year, today.month, today.day,
-            self._slugify(title))
-
-    def _slugify(self, title):
-        strip_re = re.compile(r'[^\w\s-]')
-        hyphenate_re = re.compile(r'[-\s]+')
-        if not isinstance(title, unicode):
-            title = unicode(title)
-        title = unicodedata.normalize('NFKD', title).encode('ascii', 'ignore')
-        title = unicode(strip_re.sub('', title).strip().lower())
-        return hyphenate_re.sub('-', title)
+            utils.slugify(title))
 
     def load_post(self):
         f = os.path.join(self.workdir, 'meta.yaml')
