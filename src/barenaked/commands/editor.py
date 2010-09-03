@@ -189,6 +189,7 @@ class Editor(base.BareNaked):
                     self.edit_files()
                 else:
                     print 'Abandoning post'
+                    self.cleanup()
                     sys.exit(2)
             guid = int(self.stats['last_guid']) + 1
             self.save_post(guid)
