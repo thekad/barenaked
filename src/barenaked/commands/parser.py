@@ -20,26 +20,15 @@ class Parser(base.BareNaked):
     def __init__(self):
         base.BareNaked.__init__(self)
 
+    def add_subparser(self, subparsers):
+        parser = self._setup_subparser(subparsers)
+        parser.add_argument('--output', help='Overrides the "output" directive from the config file')
+        parser.add_argument('--all', action='store_true', help='(Re-)Parse all the entries in the input tree (may take a while)')
+        parser.add_argument('--entry', type=int, help='Entry to parse')
+        parser.add_argument('--remaining', action='store_true', help='Parse the remaining entries')
+
     def run(self):
         if not 'output' in self.config.keys():
             raise UndefinedOutputError('The parser needs an output directory')
         pprint.pprint(self.config)
-
-    def _build_url(self, title):
-        return '%s/%d/%d/%d/%s' % (self.config['url'],
-            today.year, today.month, today.day,
-            utils.slugify(title))
-
-    def load_post(self):
-        f = os.path.join(self.workdir, 'meta.yaml')
-        meta = open(f, 'rb')
-        meta.close()
-        f = os.path.join(self.workdir, 'body.txt')
-        LOGGER.debug('Writing file %s' % f)
-        body = open(f, 'wb')
-        body.close()
-
-    def add_subparser(self, subparsers):
-        parser = self._setup_subparser(subparsers)
-        parser.add_argument('--output', help='Overrides the "output" directive from the config file')
 

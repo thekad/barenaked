@@ -156,7 +156,7 @@ class Editor(base.BareNaked):
         sts = os.waitpid(p.pid, 0)[1]
 
     def _update_stats(self, guid):
-        self.stats['last_guid'] = guid
+        self.stats['last_entry_created'] = guid
         self.stats['last_edit'] = self.author
         stats_path = os.path.join(self.config['source'], 'stats.yaml')
         f = codecs.open(stats_path, 'wb', encoding='utf-8')
@@ -191,7 +191,7 @@ class Editor(base.BareNaked):
                     print 'Abandoning post'
                     self.cleanup()
                     sys.exit(2)
-            guid = int(self.stats['last_guid']) + 1
+            guid = int(self.stats['last_entry_created']) + 1
             self.save_post(guid)
             self._update_stats(guid)
         else:
