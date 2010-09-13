@@ -90,6 +90,17 @@ class BareNaked():
             help='%s command help' % self.__class__.__name__.capitalize())
         return parser
 
+    def _set_author(self):
+        '''Sets the user from the config file first and environment second'''
+
+        if 'author' in self.config.keys():
+            LOGGER.debug('Editor from config')
+            self.author = self.config['author']
+        if 'USER' in os.environ.keys():
+            LOGGER.debug('User from env')
+            self.author = os.environ['USER']
+
+
 
 def demodule(module):
     klass = ''.join([_.capitalize() for _ in module.split('_')])
