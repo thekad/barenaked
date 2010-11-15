@@ -70,11 +70,23 @@ class BareNaked():
             fh.close()
         except IOError as ioe:
             LOGGER.debug('Not found, falling back to first-post stats')
-            self.stats = { 'last_entry_created': 0 }
+            self.stats = { 'last_entry_created': 0, 'last_entry_parsed': 0, 'entry_list': {} }
         except Exception as e:
             LOGGER.debug(str(e))
             LOGGER.error('Cannot load the stats file at %s, this is not good' % stats_path)
             sys.exit(404)
+
+    def update_stats(self, guid, post_path):
+        self.stats['last_entry_created'] = guid
+        self.stats['last_edit'] = self.author
+        if post_path not in self.stats['entry_list'].values():
+            self.stats['entry_list'][guid] = post_path
+            self.stats['entry_list'].items().sort()
+        stats_path = os.path.join(self.config['source'], 'stats.yaml')
+        f = codecs.open(stats_path, 'wb', encoding='utf-8')
+        LOGGER.debug('Writing stats.yaml')
+        f.write(yaml.dump(self.stats, default_flow_style=False, encoding='utf-8'))
+        f.close()
 
     def run(self):
         raise NotImplementedError

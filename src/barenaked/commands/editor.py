@@ -127,6 +127,7 @@ class Editor(base.BareNaked):
         LOGGER.debug('Writing post.yaml')
         f.write(yaml.dump(self.post, default_flow_style=False, encoding='utf-8'))
         f.close()
+        return post_path
  
     def add_subparser(self, subparsers):
         '''Adds our subparser to the parent's subparser list'''
@@ -144,15 +145,6 @@ class Editor(base.BareNaked):
         p = subprocess.Popen(cmd, shell=True)
         LOGGER.debug('Waiting for subprocess to come back...')
         sts = os.waitpid(p.pid, 0)[1]
-
-    def _update_stats(self, guid):
-        self.stats['last_entry_created'] = guid
-        self.stats['last_edit'] = self.author
-        stats_path = os.path.join(self.config['source'], 'stats.yaml')
-        f = codecs.open(stats_path, 'wb', encoding='utf-8')
-        LOGGER.debug('Writing stats.yaml')
-        f.write(yaml.dump(self.stats, default_flow_style=False, encoding='utf-8'))
-        f.close()
 
     def run(self):
         '''Main loop'''
@@ -182,8 +174,8 @@ class Editor(base.BareNaked):
                     self.cleanup()
                     sys.exit(2)
             guid = int(self.stats['last_entry_created']) + 1
-            self.save_post(guid)
-            self._update_stats(guid)
+            post_path = self.save_post(guid)
+            self.update_stats(guid, str(post_path))
         else:
             raise errors.InvalidEditorError('Cannot fire up editor %s' % self.editor)
 
