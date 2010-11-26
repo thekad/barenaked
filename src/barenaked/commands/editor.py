@@ -46,21 +46,25 @@ class Editor(base.BareNaked):
     editor = None
     post = None
     date = None
+    source = None
 
     def __init__(self):
         base.BareNaked.__init__(self)
         self.date = datetime.now()
 
-    def _set_editor(self):
+    def _set_editor(self, editor=None):
         '''Sets the editor from the config file first and environment second'''
 
-        if 'editor' in self.config.keys():
-            LOGGER.debug('Editor from config')
-            self.editor = self.config['editor']
+        if editor:
+            self.editor = editor
             return
         if 'EDITOR' in os.environ.keys():
             LOGGER.debug('Editor from env')
             self.editor = os.environ['EDITOR']
+            return
+        if 'editor' in self.config.keys():
+            LOGGER.debug('Editor from config')
+            self.editor = self.config['editor']
             return
  
     def place_files(self):
@@ -109,21 +113,22 @@ class Editor(base.BareNaked):
     def save_post(self, guid):
         '''Saves the complete yaml file'''
 
-        post_path = os.path.join(self.config['source'],
-            str(self.date.year),
+        post_path = os.path.join(str(self.date.year),
             '%02d' % self.date.month,
             '%02d' % self.date.day)
-        LOGGER.debug('Creating the directory %s' % post_path)
+        file_path = os.path.join(self.config['source'], post_path)
+        LOGGER.debug('Creating the directory %s' % file_path)
         try:
-            os.makedirs(post_path)
+            os.makedirs(file_path)
         except OSError as ose:
             if ose.errno == errno.EEXIST:
                 pass
             else:
                 raise
         self.post['guid'] = guid
-        post_path = os.path.join(post_path, '%s.yaml' % utils.slugify(self.post['title']))
-        f = codecs.open(post_path, 'wb', encoding='utf-8')
+        post_path =  '%s/%s' % (post_path, utils.slugify(self.post['title']))
+        file_path = os.path.join(file_path, '%s.yaml' % utils.slugify(self.post['title']))
+        f = codecs.open(file_path, 'wb', encoding='utf-8')
         LOGGER.debug('Writing post.yaml')
         f.write(yaml.dump(self.post, default_flow_style=False, encoding='utf-8'))
         f.close()
@@ -133,8 +138,10 @@ class Editor(base.BareNaked):
         '''Adds our subparser to the parent's subparser list'''
 
         parser = self._setup_subparser(subparsers)
-        parser.add_argument('--source', help='Overrides the "source" directive from the config file '
-            '(hint: where you want your .yaml files to live)')
+        parser.add_argument('--editor', help='Overrides the "editor" directive from the config file')
+
+    def process_args(self, args):
+        self._set_editor(args.editor)
 
     def edit_files(self):
         '''Edit both files via self.editor'''
@@ -146,13 +153,26 @@ class Editor(base.BareNaked):
         LOGGER.debug('Waiting for subprocess to come back...')
         sts = os.waitpid(p.pid, 0)[1]
 
+    def update_stats(self, guid, post_path):
+        self.stats['last_entry_created'] = guid
+        if post_path not in self.stats['entry_list'].values():
+            stat = {}
+            stat['path'] = post_path
+            stat['parsed'] = False
+            self.stats['entry_list'][guid] = stat
+            self.stats['entry_list'].items().sort()
+        stats_path = os.path.join(self.config['source'], 'stats.yaml')
+        f = codecs.open(stats_path, 'wb', encoding='utf-8')
+        LOGGER.debug('Writing stats.yaml')
+        f.write(yaml.dump(self.stats, default_flow_style=False, encoding='utf-8'))
+        f.close()
+
     def run(self):
         '''Main loop'''
 
         self.load_stats()
         self.setup_workdir()
         LOGGER.debug(self.config)
-        self._set_editor()
         self._set_author()
         self.place_files()
         LOGGER.info('Running editor %s' % self.editor)

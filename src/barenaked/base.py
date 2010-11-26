@@ -75,18 +75,7 @@ class BareNaked():
             LOGGER.debug(str(e))
             LOGGER.error('Cannot load the stats file at %s, this is not good' % stats_path)
             sys.exit(404)
-
-    def update_stats(self, guid, post_path):
-        self.stats['last_entry_created'] = guid
-        self.stats['last_edit'] = self.author
-        if post_path not in self.stats['entry_list'].values():
-            self.stats['entry_list'][guid] = post_path
-            self.stats['entry_list'].items().sort()
-        stats_path = os.path.join(self.config['source'], 'stats.yaml')
-        f = codecs.open(stats_path, 'wb', encoding='utf-8')
-        LOGGER.debug('Writing stats.yaml')
-        f.write(yaml.dump(self.stats, default_flow_style=False, encoding='utf-8'))
-        f.close()
+        LOGGER.debug('A total of %d items in the stats file' % len(self.stats['entry_list']))
 
     def run(self):
         raise NotImplementedError
@@ -96,6 +85,9 @@ class BareNaked():
 
     def add_subparser(self, subparsers):
         pass
+
+    def set_args(self, args):
+        self.argparse_args = args
 
     def _setup_subparser(self, subparsers):
         parser = subparsers.add_parser(self.__class__.__name__.lower(),

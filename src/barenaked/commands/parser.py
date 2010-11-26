@@ -6,6 +6,8 @@
 # Copyright 2009, Jorge A Gallegos <kad@blegh.net>
 
 import logging
+import markdown2
+import os
 import pprint
 
 from barenaked import base
@@ -25,10 +27,20 @@ class Parser(base.BareNaked):
         parser.add_argument('--output', help='Overrides the "output" directive from the config file')
         parser.add_argument('--all', action='store_true', help='(Re-)Parse all the entries in the input tree (may take a while)')
         parser.add_argument('--entry', type=int, help='Entry to parse')
-        parser.add_argument('--remaining', action='store_true', help='Parse the remaining entries')
+        parser.add_argument('--unparsed', action='store_true', help='Parse the unparsed entries')
+
+    def process_args(self, args):
+        pprint.pprint(args.output)
+
+    def parse_entries(self, entry_list={}):
+        #md2 = Markdown()
+        LOGGER.debug('Will parse %d entries' % len(entry_list))
+        for guid, entry in entry_list.items():
+            output = os.path.join(self.config['output'], '%s.html' % entry['path'])
+            self.stats['entry_list'][guid]['parsed'] = True
 
     def run(self):
         if not 'output' in self.config.keys():
             raise UndefinedOutputError('The parser needs an output directory')
-        pprint.pprint(self.config)
+        self.parse_entries(self.stats['entry_list'])
 
