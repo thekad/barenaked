@@ -138,10 +138,7 @@ class Editor(base.BareNaked):
         '''Adds our subparser to the parent's subparser list'''
 
         parser = self._setup_subparser(subparsers)
-        parser.add_argument('--editor', help='Overrides the "editor" directive from the config file')
-
-    def process_args(self, args):
-        self._set_editor(args.editor)
+        parser.add_argument('-e', '--editor', help='Overrides the "editor" directive from the config file')
 
     def edit_files(self):
         '''Edit both files via self.editor'''
@@ -167,10 +164,10 @@ class Editor(base.BareNaked):
         f.write(yaml.dump(self.stats, default_flow_style=False, encoding='utf-8'))
         f.close()
 
-    def run(self):
+    def run(self, args):
         '''Main loop'''
 
-        self.load_stats()
+        self._set_editor(args.editor)
         self.setup_workdir()
         LOGGER.debug(self.config)
         self._set_author()
