@@ -5,10 +5,13 @@
 # Bare Naked Blog
 # Copyright 2009, Jorge A Gallegos <kad@blegh.net>
 
+import codecs
+import jinja2
 import logging
 import markdown2
 import os
-import pprint
+import sys
+import yaml
 
 from barenaked import base
 from barenaked import constants
@@ -19,28 +22,63 @@ LOGGER = logging.getLogger(constants.app_name)
 
 class Parser(base.BareNaked):
 
+    output = None
+
     def __init__(self):
         base.BareNaked.__init__(self)
 
     def add_subparser(self, subparsers):
         parser = self._setup_subparser(subparsers)
-        parser.add_argument('--output', help='Overrides the "output" directive from the config file')
-        parser.add_argument('--all', action='store_true', help='(Re-)Parse all the entries in the input tree (may take a while)')
-        parser.add_argument('--entry', type=int, help='Entry to parse')
-        parser.add_argument('--unparsed', action='store_true', help='Parse the unparsed entries')
+        parser.add_argument('-o', '--output', help='Overrides the "output" directive from the config file')
+        parser.add_argument('-s', '--source', help='Overrides the "source" directive from the config file')
+        parser.add_argument('-a', '--all', action='store_true', help='(Re-)Parse all the entries in the input tree (may take a while)')
+        parser.add_argument('-e', '--entry', type=int, help='Entry to parse')
+        parser.add_argument('-u', '--unparsed', action='store_true', help='Parse the unparsed entries')
+        parser.add_argument('-t', '--templates', help='Overrides the "templates" directive from the config file, '
+                            'directory that holds the templates for parsing')
 
-    def process_args(self, args):
-        pprint.pprint(args.output)
+    def parse_entry(self, ifile, ofile):
+        pass
 
     def parse_entries(self, entry_list={}):
-        #md2 = Markdown()
         LOGGER.debug('Will parse %d entries' % len(entry_list))
         for guid, entry in entry_list.items():
-            output = os.path.join(self.config['output'], '%s.html' % entry['path'])
+            ofile = os.path.join(self.output, '%s.html' % entry['path'])
+            ifile = os.path.join(self.source, '%s.yaml' % entry['path'])
+            LOGGER.debug('Will transform %s into %s' % (ifile, ofile))
+            try:
+                f = codecs.open(ifile)
+                ifile = yaml.load(f)
+                f.close()
+            except Exception, e:
+                ifile = os.path.join(self.source, '%s.yaml' % entry['path'])
+                LOGGER.warn(str(e))
+                LOGGER.error('File %s (entry # %d) was not parsed' % (ifile, guid))
+                continue
+            LOGGER.info('Writing %s' % ofile)
+            content = markdown2.markdown(ifile['body'])
             self.stats['entry_list'][guid]['parsed'] = True
 
-    def run(self):
-        if not 'output' in self.config.keys():
-            raise UndefinedOutputError('The parser needs an output directory')
-        self.parse_entries(self.stats['entry_list'])
+    def run(self, args):
+        self.output = self.config.pop('output', False)
+        self.source = self.config.pop('source', False)
+        self.templates = self.config.pop('templates', False)
+        if args.source:
+            self.source = args.source
+        if args.output:
+            self.output = args.output
+        if args.templates:
+            self.templates = args.templates
+        if not self.output:
+            raise ValueError('The parser needs an output directory')
+        if args.all:
+            self.parse_entries(self.stats['entry_list'])
+        elif args.unparsed:
+            self.parse_entries(dict((k,v) for (k,v) in self.stats['entry_list'].items() if not v['parsed']))
+        elif args.entry:
+            if args.entry not in self.stats['entry_list'].keys():
+                raise KeyError('The specified entry does not exist')
+            self.parse_entries({ args.entry: self.stats['entry_list'][args.entry] })
+        else:
+            LOGGER.warn('You have to parse something, check -h for help')
 
