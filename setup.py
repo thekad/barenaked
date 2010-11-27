@@ -16,9 +16,9 @@ setuptools.setup (
     zip_safe = True,
     install_requires = [
         'jinja2>=2.2.0',
-        'Markdown>=2.0.3',
+        'Markdown2',
         'PyYAML>=3.09',
-        'argparse'
+        'argparse',
     ],
     entry_points = {
         'console_scripts': [
