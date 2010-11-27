@@ -22,7 +22,7 @@ format='%(filename)s:%(lineno)d - %(levelname)s: %(message)s'
 if 'BARE_DEBUG' in os.environ.keys():
     logging.basicConfig(level=logging.DEBUG, format=format)
 else:
-    logging.basicConfig(level=logging.WARNING, format=format)
+    logging.basicConfig(level=logging.INFO, format=format)
 LOGGER = logging.getLogger(constants.app_name)
 
 class BareNaked():
@@ -80,9 +80,6 @@ class BareNaked():
     def run(self):
         raise NotImplementedError
 
-    def process_args(self, args):
-        pass
-
     def add_subparser(self, subparsers):
         pass
 
@@ -127,6 +124,7 @@ def main():
         klass = demodule(module)
         klass = klass()
         klass.add_subparser(subparsers)
+        klass = None
     args = parser.parse_args()
 
     if len(sys.argv) < 2:
@@ -137,8 +135,7 @@ def main():
     try:
         klass.load_config(args.config)
         klass.load_stats()
-        klass.process_args(args)
-        klass.run()
+        klass.run(args)
         klass.cleanup()
     except Exception as e:
         klass.cleanup()
