@@ -77,7 +77,7 @@ class BareNaked():
             sys.exit(404)
         LOGGER.debug('A total of %d items in the stats file' % len(self.stats['entry_list']))
 
-    def run(self):
+    def run(self, args=None):
         raise NotImplementedError
 
     def add_subparser(self, subparsers):
