@@ -7,6 +7,7 @@
 
 import codecs
 import jinja2
+from jinja2 import loaders
 import logging
 import markdown2
 import os
@@ -37,11 +38,12 @@ class Parser(base.BareNaked):
         parser.add_argument('-t', '--templates', help='Overrides the "templates" directive from the config file, '
                             'directory that holds the templates for parsing')
 
-    def parse_entry(self, ifile, ofile):
-        pass
-
     def parse_entries(self, entry_list={}):
         LOGGER.debug('Will parse %d entries' % len(entry_list))
+        LOGGER.debug('Loading templates from %s' % self.templates)
+        env = jinja2.Environment(loader=loaders.FileSystemLoader(self.templates))
+        tpl = env.get_template('base.html')
+        print tpl
         for guid, entry in entry_list.items():
             ofile = os.path.join(self.output, '%s.html' % entry['path'])
             ifile = os.path.join(self.source, '%s.yaml' % entry['path'])
@@ -57,6 +59,8 @@ class Parser(base.BareNaked):
                 continue
             LOGGER.info('Writing %s' % ofile)
             content = markdown2.markdown(ifile['body'])
+            ifile['body'] = content
+            print tpl.render(blog=self.config['blog'], entry=ifile)
             self.stats['entry_list'][guid]['parsed'] = True
 
     def run(self, args):
