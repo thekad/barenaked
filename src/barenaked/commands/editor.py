@@ -58,13 +58,13 @@ class Editor(base.BareNaked):
         if editor:
             self.editor = editor
             return
-        if 'EDITOR' in os.environ.keys():
-            LOGGER.debug('Editor from env')
-            self.editor = os.environ['EDITOR']
-            return
         if 'editor' in self.config.keys():
             LOGGER.debug('Editor from config')
             self.editor = self.config['editor']
+            return
+        if 'EDITOR' in os.environ.keys():
+            LOGGER.debug('Editor from env')
+            self.editor = os.environ['EDITOR']
             return
  
     def place_files(self):
