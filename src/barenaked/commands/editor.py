@@ -108,6 +108,13 @@ class Editor(base.BareNaked):
         if 'author' not in meta.keys() or not meta['author']:
             LOGGER.warn('Who is writing this post? needs an author')
             return False
+        post_path = os.path.join(str(self.date.year),
+            '%02d' % self.date.month,
+            '%02d' % self.date.day)
+        posts = [ _['path'] for _ in self.stats['entry_list'].values() if _['path'].startswith(post_path) ]
+        if '%s/%s' % (post_path, utils.slugify(meta['title'])) in posts:
+            LOGGER.warn('There is another post written today with the same title')
+            return False
         return True
         
     def save_post(self, guid):
