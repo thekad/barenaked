@@ -31,10 +31,10 @@ class Parser(base.BareNaked):
     def add_subparser(self, subparsers):
         parser = self._setup_subparser(subparsers)
         parser.add_argument('-o', '--output', help='Overrides the "output" directive from the config file')
-        parser.add_argument('-s', '--source', help='Overrides the "source" directive from the config file')
         parser.add_argument('-a', '--all', action='store_true', help='(Re-)Parse all the entries in the input tree (may take a while)')
         parser.add_argument('-e', '--entry', type=int, help='Entry to parse')
         parser.add_argument('-u', '--unparsed', action='store_true', help='Parse the unparsed entries')
+        parser.add_argument('-l', '--list', action='store_true', help='List unparsed entries')
         parser.add_argument('-t', '--templates', help='Overrides the "templates" directive from the config file, '
                             'directory that holds the templates for parsing')
 
@@ -43,7 +43,6 @@ class Parser(base.BareNaked):
         LOGGER.debug('Loading templates from %s' % self.templates)
         env = jinja2.Environment(loader=loaders.FileSystemLoader(self.templates))
         tpl = env.get_template('base.html')
-        print tpl
         for guid, entry in entry_list.items():
             ofile = os.path.join(self.output, '%s.html' % entry['path'])
             ifile = os.path.join(self.source, '%s.yaml' % entry['path'])
@@ -60,6 +59,7 @@ class Parser(base.BareNaked):
             LOGGER.info('Writing %s' % ofile)
             content = markdown2.markdown(ifile['body'])
             ifile['body'] = content
+            print ifile
             print tpl.render(blog=self.config['blog'], entry=ifile)
             self.stats['entry_list'][guid]['parsed'] = True
 
@@ -67,8 +67,14 @@ class Parser(base.BareNaked):
         self.output = self.config.pop('output', False)
         self.source = self.config.pop('source', False)
         self.templates = self.config.pop('templates', False)
-        if args.source:
-            self.source = args.source
+        if args.list:
+            if self.stats['entry_list']:
+                for k,v in self.stats['entry_list'].items():
+                    if not v['parsed']:
+                        print '%d: %s' % (int(k), v['path'])
+            else:
+                print '--'
+            return
         if args.output:
             self.output = args.output
         if args.templates:
