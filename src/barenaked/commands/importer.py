@@ -5,55 +5,63 @@
 # Bare Naked Blog
 # Copyright 2010, Jorge A Gallegos <kad@blegh.net>
 
+import codecs
+from datetime import datetime
+import errno
 import logging
 import os
-import sys
+import yaml
 
 from barenaked import base
 from barenaked import constants
-from barenaked import errors
 from barenaked import utils
-from barenaked import import_drivers
 
 
 LOGGER = logging.getLogger(constants.app_name)
 
 class Importer(base.BareNaked):
 
-    dsn = ''
-    driver = ''
-
     def add_subparser(self, subparsers):
         '''Adds our subparser to the parent's subparser list'''
 
         parser = self._setup_subparser(subparsers)
-        parser.add_argument('--dsn', help='Database dsn (e.g. mysql://user[:pass]@host/db)')
-        parser.add_argument('--driver', help='Select your importer driver, currently: %s' %
-            ','.join(import_drivers.__all__))
+        parser.add_argument('-f', '--file', help='YAML input file', required=True)
 
-    def _fetch_posts(self):
-        raise NotImplementedError()
+    def save_entry(self, guid, entry):
+        slug = utils.slugify(entry['title'])
+        entry['guid'] = int(guid)
+        date = entry['createtime']
+        post_path = os.path.join(str(date.year),
+            '%02d' % date.month,
+            '%02d' % date.day)
+        file_path = os.path.join(self.config['source'], post_path)
+        LOGGER.debug('Creating the directory %s' % file_path)
+        try:
+            os.makedirs(file_path)
+        except OSError as ose:
+            if ose.errno == errno.EEXIST:
+                pass
+            else:
+                raise
+        post_path =  '%s/%s' % (post_path, slug)
+        file_path = os.path.join(file_path, '%s.yaml' % slug)
+        f = codecs.open(file_path, 'wb', encoding='utf-8')
+        LOGGER.debug('Writing %s' % post_path)
+        f.write(yaml.safe_dump(entry, explicit_start=True,
+            default_flow_style=False, encoding='utf-8'))
+        f.close()
+        return post_path
 
-    def _fetch_tags(self, guid):
-        raise NotImplementedError()
-
-    def process_args(self, args):
-        self.dsn = args.dsn
-        LOGGER.debug('Importer DSN: %s' % self.dsn)
-        self.driver = args.driver
-        LOGGER.debug('Importer Driver: %s' % self.driver)
-
-    def run(self):
+    def run(self, args):
         '''Main loop'''
 
-        if not self.driver:
-            print 'Please specify a driver'
-            sys.exit(1)
-        if not self.dsn:
-            print 'The importer needs a DSN to work with'
-            sys.exit(1)
         self.load_stats()
         self.setup_workdir()
-        self._set_author()
-        new_guid = int(self.stats['last_entry_created']) + 1
+        fh = codecs.open(args.file, 'rb', encoding='utf-8')
+        posts = yaml.load(fh.read())
+        fh.close()
+        for id,entry in posts.items():
+            guid = int(self.stats['last_entry_created']) + 1
+            post_path = self.save_entry(guid, entry)
+            self.update_stats(guid, str(post_path))
 
