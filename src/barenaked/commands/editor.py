@@ -30,7 +30,7 @@ title:
 # Specify date if you don't want the file's mtime
 # to be used (i.e. if this post is in the future)
 # Date must be in rfc2822, i.e. date -R (TZ is ignored)
-#date:
+#createtime:
 # Author username must exist in the global config file to
 # be parsed (defaults to $USER)
 author: %(user)s
@@ -38,7 +38,7 @@ author: %(user)s
 #comments:
 # You can specify a list of tags here
 tags:
-  - general
+- general
 '''
 
 class Editor(base.BareNaked):
@@ -137,7 +137,8 @@ class Editor(base.BareNaked):
         file_path = os.path.join(file_path, '%s.yaml' % utils.slugify(self.post['title']))
         f = codecs.open(file_path, 'wb', encoding='utf-8')
         LOGGER.debug('Writing post.yaml')
-        f.write(yaml.dump(self.post, default_flow_style=False, encoding='utf-8'))
+        f.write(yaml.safe_dump(self.post, explicit_start=True,
+            default_flow_style=False, encoding='utf-8'))
         f.close()
         return post_path
  
@@ -156,20 +157,6 @@ class Editor(base.BareNaked):
         p = subprocess.Popen(cmd, shell=True)
         LOGGER.debug('Waiting for subprocess to come back...')
         sts = os.waitpid(p.pid, 0)[1]
-
-    def update_stats(self, guid, post_path):
-        self.stats['last_entry_created'] = guid
-        if post_path not in self.stats['entry_list'].values():
-            stat = {}
-            stat['path'] = post_path
-            stat['parsed'] = False
-            self.stats['entry_list'][guid] = stat
-            self.stats['entry_list'].items().sort()
-        stats_path = os.path.join(self.config['source'], 'stats.yaml')
-        f = codecs.open(stats_path, 'wb', encoding='utf-8')
-        LOGGER.debug('Writing stats.yaml')
-        f.write(yaml.dump(self.stats, default_flow_style=False, encoding='utf-8'))
-        f.close()
 
     def run(self, args):
         '''Main loop'''
