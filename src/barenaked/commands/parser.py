@@ -24,6 +24,9 @@ LOGGER = logging.getLogger(constants.app_name)
 class Parser(base.BareNaked):
 
     output = None
+    source = None
+    templates = None
+    parsed = []
 
     def __init__(self):
         base.BareNaked.__init__(self)
@@ -38,35 +41,85 @@ class Parser(base.BareNaked):
         parser.add_argument('-t', '--templates', help='Overrides the "templates" directive from the config file, '
                             'directory that holds the templates for parsing')
 
+    def _update_tags(self):
+        for category in self.categories:
+            pass
+
+    def _save_entry(self, guid, entry):
+        """Saves a given entry"""
+
+        ofile = os.path.join(self.output, '%s.html' % entry['path'])
+        if not os.path.isdir(os.path.dirname(ofile)):
+            LOGGER.debug('Creating %s' % os.path.dirname(ofile))
+            try:
+                os.makedirs(os.path.dirname(ofile))
+            except Exception as e:
+                LOGGER.debug('Failed to create %s' % os.path.dirname(ofile))
+                LOGGER.error('Could not create the directory for the post #%s' % guid)
+                return False
+
+        ifile = os.path.join(self.source, '%s.yaml' % entry['path'])
+        LOGGER.debug('Will transform %s into %s' % (ifile, ofile))
+
+        try:
+            f = codecs.open(ifile, 'rb', encoding='utf-8')
+            ifile = yaml.load(f)
+            f.close()
+        except Exception, e:
+            ifile = os.path.join(self.source, '%s.yaml' % entry['path'])
+            LOGGER.warn(str(e))
+            LOGGER.error('File %s (entry # %d) was not parsed' % (ifile, guid))
+            return False
+
+        LOGGER.info('Writing %s' % ofile)
+        content = markdown2.markdown(ifile['body'])
+        ifile['body'] = content
+        self.__gen_parsed_entries(guid)
+        ifile['previous'] = None
+#       If it's not the first parsed element
+        if self.parsed.index(guid):
+            #ifile['previous'] = '%s/%s.html' % (self.config['blog']['url'], self.stats['entry_list'][self.parsed[self.parsed.index(guid)]]['path'])
+            ifile['previous'] = '%s.html' % self.stats['entry_list'][self.parsed[self.parsed.index(guid) - 1]]['path']
+            LOGGER.debug('previous is %s' % ifile['previous'])
+        ifile['next'] = None
+#       If it's not the last element
+        if self.parsed.index(guid) < ( len(self.parsed) - 1 ):
+            #ifile['next'] = '%s/%s.html' % (self.config['blog']['url'], self.stats['entry_list'][self.parsed[self.parsed.index(guid) + 2]]['path'])
+            ifile['next'] = '%s.html' % self.stats['entry_list'][self.parsed[self.parsed.index(guid) + 1]]['path']
+            LOGGER.debug('next is %s' % ifile['next'])
+        tpl = self.tpl_env.get_template('entry.html')
+        f = codecs.open(ofile, 'wb', encoding='utf-8')
+        f.write(tpl.render(blog=self.config['blog'], entry=ifile, encoding='utf-8'))
+        f.close()
+        self.stats['entry_list'][guid]['parsed'] = True
+        self.stats['last_entry_parsed'] = guid
+
+    def __gen_parsed_entries(self, e=None):
+        LOGGER.debug('Generating list of parsed entries')
+        for guid, entry in self.stats['entry_list'].items():
+            if entry['parsed'] and guid not in self.parsed:
+                self.parsed.append(guid)
+        if e and e not in self.parsed:
+            self.parsed.append(e)
+        self.parsed.sort()
+
     def parse_entries(self, entry_list={}):
         LOGGER.debug('Will parse %d entries' % len(entry_list))
         LOGGER.debug('Loading templates from %s' % self.templates)
-        env = jinja2.Environment(loader=loaders.FileSystemLoader(self.templates))
-        tpl = env.get_template('base.html')
+        self.tpl_env = jinja2.Environment(loader=loaders.FileSystemLoader(self.templates))
         for guid, entry in entry_list.items():
-            ofile = os.path.join(self.output, '%s.html' % entry['path'])
-            ifile = os.path.join(self.source, '%s.yaml' % entry['path'])
-            LOGGER.debug('Will transform %s into %s' % (ifile, ofile))
-            try:
-                f = codecs.open(ifile)
-                ifile = yaml.load(f)
-                f.close()
-            except Exception, e:
-                ifile = os.path.join(self.source, '%s.yaml' % entry['path'])
-                LOGGER.warn(str(e))
-                LOGGER.error('File %s (entry # %d) was not parsed' % (ifile, guid))
-                continue
-            LOGGER.info('Writing %s' % ofile)
-            content = markdown2.markdown(ifile['body'])
-            ifile['body'] = content
-            print ifile
-            print tpl.render(blog=self.config['blog'], entry=ifile)
-            self.stats['entry_list'][guid]['parsed'] = True
+            if self._save_entry(guid, entry):
+                pass
+        self._write_stats()
 
     def run(self, args):
-        self.output = self.config.pop('output', False)
-        self.source = self.config.pop('source', False)
-        self.templates = self.config.pop('templates', False)
+        if 'output' in self.config.keys():
+            self.output = self.config['output']
+        if 'source' in self.config.keys():
+            self.source = self.config['source']
+        if 'templates' in self.config.keys():
+            self.templates = self.config['templates']
+        self.__gen_parsed_entries()
         if args.list:
             if self.stats['entry_list']:
                 for k,v in self.stats['entry_list'].items():
