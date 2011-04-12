@@ -18,7 +18,7 @@ import errors
 
 
 # Logging stuff
-format='%(filename)s:%(lineno)d - %(levelname)s: %(message)s'
+format='%(levelname)s: %(message)s'
 if 'BARE_DEBUG' in os.environ.keys():
     logging.basicConfig(level=logging.DEBUG, format=format)
 else:
@@ -59,7 +59,14 @@ class BareNaked():
             LOGGER.error(str(e))
             raise errors.ConfigNotFoundError('Config file "%s" was not found or is invalid' % config_file)
 
-    def update_stats(self, guid, post_path):
+    def _write_stats(self):
+        stats_path = os.path.join(self.config['source'], 'stats.yaml')
+        f = codecs.open(stats_path, 'wb', encoding='utf-8')
+        LOGGER.debug('Writing stats.yaml')
+        f.write(yaml.dump(self.stats, default_flow_style=False, encoding='utf-8'))
+        f.close()
+
+    def update_create_stats(self, guid, post_path):
         self.stats['last_entry_created'] = guid
         if post_path not in self.stats['entry_list'].values():
             stat = {}
@@ -67,11 +74,6 @@ class BareNaked():
             stat['parsed'] = False
             self.stats['entry_list'][guid] = stat
             self.stats['entry_list'].items().sort()
-        stats_path = os.path.join(self.config['source'], 'stats.yaml')
-        f = codecs.open(stats_path, 'wb', encoding='utf-8')
-        LOGGER.debug('Writing stats.yaml')
-        f.write(yaml.dump(self.stats, default_flow_style=False, encoding='utf-8'))
-        f.close()
 
     def load_stats(self):
         '''Loads the general stats file'''
@@ -109,11 +111,13 @@ class BareNaked():
         '''Sets the user from the config file first and environment second'''
 
         if 'author' in self.config.keys():
-            LOGGER.debug('Editor from config')
+            LOGGER.debug('Author from config')
             self.author = self.config['author']
+            return
         if 'USER' in os.environ.keys():
             LOGGER.debug('User from env')
             self.author = os.environ['USER']
+            return
 
 
 
@@ -153,7 +157,7 @@ def main():
         klass.cleanup()
     except Exception as e:
         klass.cleanup()
-        LOGGER.error(str(e))
+        LOGGER.error('Huh? %s' % e)
 
 if __name__ == '__main__':
     sys.exit(main())
