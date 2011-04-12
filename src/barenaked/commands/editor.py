@@ -186,7 +186,8 @@ class Editor(base.BareNaked):
                     sys.exit(2)
             guid = int(self.stats['last_entry_created']) + 1
             post_path = self.save_post(guid)
-            self.update_stats(guid, str(post_path))
+            self.update_create_stats(guid, str(post_path))
+            self._write_stats()
         else:
             raise errors.InvalidEditorError('Cannot fire up editor %s' % self.editor)
 
