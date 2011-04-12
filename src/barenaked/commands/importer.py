@@ -57,11 +57,22 @@ class Importer(base.BareNaked):
 
         self.load_stats()
         self.setup_workdir()
-        fh = codecs.open(args.file, 'rb', encoding='utf-8')
-        posts = yaml.load(fh.read())
-        fh.close()
+        LOGGER.info('Importing from %s' % args.file)
+        try:
+            fh = codecs.open(args.file, 'rb', encoding='utf-8')
+            posts = yaml.load(fh.read())
+            fh.close()
+        except Exception as e:
+            LOGGER.error(e)
+            return 1
+        counter = 0
         for id,entry in posts.items():
+            counter += 1
+            if not counter % 5:
+                LOGGER.info('Imported %d entries...' % counter)
             guid = int(self.stats['last_entry_created']) + 1
             post_path = self.save_entry(guid, entry)
-            self.update_stats(guid, str(post_path))
+            self.update_create_stats(guid, str(post_path))
+        self._write_stats()
+        LOGGER.info('Done. Imported %d entries' % counter)
 
