@@ -13,7 +13,7 @@ setuptools.setup (
     version = constants.app_version,
     package_dir = { '': 'src' },
     packages = setuptools.find_packages('src'),
-    zip_safe = True,
+    zip_safe = False,
     install_requires = [
         'jinja2>=2.2.0',
         'Markdown2',
@@ -27,6 +27,8 @@ setuptools.setup (
     },
     author = constants.author,
     author_email = constants.author_email,
+    maintainer = constants.author,
+    maintainer_email = constants.author_email,
     description = constants.app_desc,
     license = 'MIT',
     keywords = 'blog html',
