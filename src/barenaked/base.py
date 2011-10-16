@@ -119,8 +119,6 @@ class BareNaked():
             self.author = os.environ['USER']
             return
 
-
-
 def demodule(module):
     klass = ''.join([_.capitalize() for _ in module.split('_')])
     LOGGER.debug('Importing class %s from barenaked.commands.%s' % (klass, module))
@@ -128,15 +126,16 @@ def demodule(module):
     klass = getattr(module, klass)
     return klass
 
+
 def main():
     # These modules should only be imported if called from the cli
     import argparse
     import commands
-    parser = argparse.ArgumentParser(prog=os.path.basename(sys.argv[0]),
-                                     description=constants.app_desc)
+    parser = argparse.ArgumentParser(description=constants.app_desc,
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument('-c', '--config', dest='config',
-                        help='Config file, defaults to ~/.barerc',
-                        default=os.path.join(os.environ['HOME'], '.barerc'))
+        help='Config file',
+        default=os.path.join(os.environ['HOME'], '.barerc'))
     subparsers = parser.add_subparsers(title='Commands', dest='subparser_name')
     for module in commands.__all__:
         klass = demodule(module)
