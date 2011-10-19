@@ -6,7 +6,6 @@
 # Copyright 2010, Jorge A Gallegos <kad@blegh.net>
 
 import codecs
-from datetime import datetime
 import errno
 import logging
 import os
@@ -72,7 +71,10 @@ class Importer(base.BareNaked):
                 LOGGER.info('Imported %d entries...' % counter)
             guid = int(self.stats['last_entry_created']) + 1
             post_path = self.save_entry(guid, entry)
-            self.update_create_stats(guid, str(post_path))
-        self._write_stats()
-        LOGGER.info('Done. Imported %d entries' % counter)
+            self.stats['last_entry_created'] = guid
+            stat = {}
+            stat['path'] = post_path
+            stat['parsed'] = False
+            self.stats['entry_list'][guid] = stat
+        self.update_stats()
 
