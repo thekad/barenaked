@@ -27,15 +27,10 @@ META_TMPL = '''---
 # vim: tabstop=2 softtabstop=2 expandtab shiftwidth=2 fileencoding=utf-8
 
 title:
-# Specify date if you don't want the file's mtime
-# to be used (i.e. if this post is in the future)
-# Date must be in rfc2822, i.e. date -R (TZ is ignored)
-#createtime:
-# Author username must exist in the global config file to
-# be parsed (defaults to $USER)
+createtime: %(createtime)s
 author: %(user)s
 # If you want to override your global comment settings, say Yes or No
-#comments:
+comments: %(comments)s
 # You can specify a list of tags here
 tags:
 - general
@@ -73,7 +68,11 @@ class Editor(base.BareNaked):
         f = os.path.join(self.workdir, 'meta.yaml')
         LOGGER.debug('Writing file %s' % f)
         meta = codecs.open(f, 'wb', encoding='utf-8')
-        meta.write(META_TMPL % {'user': self.author})
+        meta.write(META_TMPL % {
+            'user': self.author,
+            'createtime': self.date.isoformat(),
+            'comments': self.config['blog'].get('comments', False) and 'Yes' or 'No',
+        })
         meta.close()
         f = os.path.join(self.workdir, 'body.txt')
         LOGGER.debug('Writing file %s' % f)
@@ -186,8 +185,12 @@ class Editor(base.BareNaked):
                     sys.exit(2)
             guid = int(self.stats['last_entry_created']) + 1
             post_path = self.save_post(guid)
-            self.update_create_stats(guid, str(post_path))
-            self._write_stats()
+            self.stats['last_entry_created'] = guid
+            stat = {}
+            stat['path'] = post_path
+            stat['parsed'] = False
+            self.stats['entry_list'][guid] = stat
+            self.update_stats()
         else:
             raise errors.InvalidEditorError('Cannot fire up editor %s' % self.editor)
 
