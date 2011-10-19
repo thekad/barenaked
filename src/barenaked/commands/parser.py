@@ -6,6 +6,7 @@
 # Copyright 2009, Jorge A Gallegos <kad@blegh.net>
 
 import codecs
+import errno
 import jinja2
 from jinja2 import loaders
 import logging
@@ -106,20 +107,52 @@ class Parser(base.BareNaked):
     def parse_entries(self, entry_list={}):
         LOGGER.debug('Will parse %d entries' % len(entry_list))
         LOGGER.debug('Loading templates from %s' % self.templates)
-        self.tpl_env = jinja2.Environment(loader=loaders.FileSystemLoader(self.templates))
+        tpl = self.jinja2.get_template('entry.html')
         for guid, entry in entry_list.items():
-            if self._save_entry(guid, entry):
-                pass
-        self._write_stats()
+            ofile = os.path.join(self.output, '%s.html' % entry['path'])
+            ifile = os.path.join(self.source, '%s.yaml' % entry['path'])
+            LOGGER.debug('Will transform %s into %s' % (ifile, ofile))
+            try:
+                f = codecs.open(ifile)
+                ifile = yaml.load(f)
+                f.close()
+            except Exception as e:
+                ifile = os.path.join(self.source, '%s.yaml' % entry['path'])
+                LOGGER.warn(str(e))
+                LOGGER.error('File %s (entry # %d) was not parsed' % (ifile, guid))
+                continue
+            LOGGER.info('Writing %s' % ofile)
+            file_path = os.path.dirname(ofile)
+            try:
+                LOGGER.debug('Creating %s' % file_path)
+                os.makedirs(file_path)
+            except OSError as ose:
+                if ose.errno == errno.EEXIST:
+                    LOGGER.debug('Already exists!')
+                else:
+                    raise
+            content = markdown2.markdown(ifile['body'])
+            ifile['body'] = content
+            html = tpl.render(blog=self.config['blog'], entry=ifile)
+            try:
+                of = codecs.open(ofile, 'wb', encoding='utf-8')
+                of.write(html)
+            except Exception as e:
+                LOGGER.warn(str(e))
+                LOGGER.error('File %s (entry # %d) was parsed but was not written' % (ofile, guid))
+#               Try to close the open file if it was opened
+                try:
+                    of.close(parsed)
+                except:
+                    pass
+            self.stats['entry_list'][guid]['parsed'] = True
+            self.stats['last_entry_parsed'] = guid
+        #self.update_stats()
 
     def run(self, args):
-        if 'output' in self.config.keys():
-            self.output = self.config['output']
-        if 'source' in self.config.keys():
-            self.source = self.config['source']
-        if 'templates' in self.config.keys():
-            self.templates = self.config['templates']
-        self.__gen_parsed_entries()
+        self.output = self.config.get('output', False)
+        self.source = self.config.get('source', False)
+        self.templates = self.config.get('templates', False)
         if args.list:
             if self.stats['entry_list']:
                 for k,v in self.stats['entry_list'].items():
@@ -134,6 +167,7 @@ class Parser(base.BareNaked):
             self.templates = args.templates
         if not self.output:
             raise ValueError('The parser needs an output directory')
+        self.jinja2 = jinja2.Environment(loader=loaders.FileSystemLoader(self.templates))
         if args.all:
             self.parse_entries(self.stats['entry_list'])
         elif args.unparsed:
