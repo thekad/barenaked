@@ -59,21 +59,12 @@ class BareNaked():
             LOGGER.error(str(e))
             raise errors.ConfigNotFoundError('Config file "%s" was not found or is invalid' % config_file)
 
-    def _write_stats(self):
+    def update_stats(self):
         stats_path = os.path.join(self.config['source'], 'stats.yaml')
         f = codecs.open(stats_path, 'wb', encoding='utf-8')
         LOGGER.debug('Writing stats.yaml')
-        f.write(yaml.dump(self.stats, default_flow_style=False, encoding='utf-8'))
+        f.write(yaml.safe_dump(self.stats, default_flow_style=False, encoding='utf-8'))
         f.close()
-
-    def update_create_stats(self, guid, post_path):
-        self.stats['last_entry_created'] = guid
-        if post_path not in self.stats['entry_list'].values():
-            stat = {}
-            stat['path'] = post_path
-            stat['parsed'] = False
-            self.stats['entry_list'][guid] = stat
-            self.stats['entry_list'].items().sort()
 
     def load_stats(self):
         '''Loads the general stats file'''
