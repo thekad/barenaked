@@ -6,6 +6,7 @@
 # Copyright 2010, Jorge A Gallegos <kad@blegh.net>
 
 import codecs
+import collections
 import errno
 import logging
 import os
@@ -45,7 +46,7 @@ class Importer(base.BareNaked):
         post_path =  '%s/%s' % (post_path, slug)
         file_path = os.path.join(file_path, '%s.yaml' % slug)
         f = codecs.open(file_path, 'wb', encoding='utf-8')
-        LOGGER.debug('Writing %s' % post_path)
+        LOGGER.info('Writing %s' % post_path)
         f.write(yaml.safe_dump(entry, explicit_start=True,
             default_flow_style=False, encoding='utf-8'))
         f.close()
@@ -56,15 +57,16 @@ class Importer(base.BareNaked):
 
         self.load_stats()
         self.setup_workdir()
-        LOGGER.info('Importing from %s' % args.file)
-        try:
-            fh = codecs.open(args.file, 'rb', encoding='utf-8')
-            posts = yaml.load(fh.read())
-            fh.close()
-        except Exception as e:
-            LOGGER.error(e)
-            return 1
-        counter = 0
+        fh = codecs.open(args.file, 'rb', encoding='utf-8')
+        posts = yaml.load(fh.read())
+        fh.close()
+        dqs = {}
+        if 'feedsize' in self.config['blog'].keys():
+            fs = int(self.config['blog']['feedsize'])
+        else:
+            fs = 5
+        for k,v in self.stats['tags'].items():
+            dqs[k] = collections.deque(v, maxlen=fs)
         for id,entry in posts.items():
             counter += 1
             if not counter % 5:
@@ -76,5 +78,13 @@ class Importer(base.BareNaked):
             stat['path'] = post_path
             stat['parsed'] = False
             self.stats['entry_list'][guid] = stat
+            for tag in entry['tags']:
+                if tag in dqs.keys():
+                    dqs[tag].append(id)
+                else:
+                    dqs[tag] = collections.deque([id], maxlen=fs)
+        for k,v in dqs.items():
+            self.stats['tags'][k] = list(v)
+
         self.update_stats()
 
