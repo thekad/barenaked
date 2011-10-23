@@ -77,7 +77,12 @@ class BareNaked():
             fh.close()
         except IOError as ioe:
             LOGGER.debug('Not found, falling back to first-post stats')
-            self.stats = { 'last_entry_created': 0, 'last_entry_parsed': 0, 'entry_list': {} }
+            self.stats = {
+                'last_entry_created': 0,
+                'last_entry_parsed': 0,
+                'entry_list': {},
+                'tags': {},
+            }
         except Exception as e:
             LOGGER.debug(str(e))
             LOGGER.error('Cannot load the stats file at %s, this is not good' % stats_path)
