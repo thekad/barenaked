@@ -19,6 +19,7 @@ setuptools.setup (
         'Markdown2',
         'PyYAML>=3.09',
         'argparse',
+        'PyRSS2Gen',
     ],
     entry_points = {
         'console_scripts': [

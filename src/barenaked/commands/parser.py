@@ -6,12 +6,15 @@
 # Copyright 2009, Jorge A Gallegos <kad@blegh.net>
 
 import codecs
+import collections
+import datetime
 import errno
 import jinja2
 from jinja2 import loaders
 import logging
 import markdown2
 import os
+import PyRSS2Gen
 import sys
 import yaml
 
@@ -42,72 +45,50 @@ class Parser(base.BareNaked):
         parser.add_argument('-t', '--templates', help='Overrides the "templates" directive from the config file, '
                             'directory that holds the templates for parsing')
 
-    def _update_tags(self):
-        for category in self.categories:
-            pass
-
-    def _save_entry(self, guid, entry):
-        """Saves a given entry"""
-
-        ofile = os.path.join(self.output, '%s.html' % entry['path'])
-        if not os.path.isdir(os.path.dirname(ofile)):
-            LOGGER.debug('Creating %s' % os.path.dirname(ofile))
-            try:
-                os.makedirs(os.path.dirname(ofile))
-            except Exception as e:
-                LOGGER.debug('Failed to create %s' % os.path.dirname(ofile))
-                LOGGER.error('Could not create the directory for the post #%s' % guid)
-                return False
-
-        ifile = os.path.join(self.source, '%s.yaml' % entry['path'])
-        LOGGER.debug('Will transform %s into %s' % (ifile, ofile))
-
-        try:
-            f = codecs.open(ifile, 'rb', encoding='utf-8')
-            ifile = yaml.load(f)
+    def build_feed(self, filename, title, description, items):
+        LOGGER.info('Building RSS Feed %s' % (filename,))
+        rss_items = []
+        for item in items:
+            f = '%s/%s.yaml' % (self.config['source'], item['path'])
+            f = codecs.open(f)
+            y = yaml.safe_load(f.read())
             f.close()
-        except Exception, e:
-            ifile = os.path.join(self.source, '%s.yaml' % entry['path'])
-            LOGGER.warn(str(e))
-            LOGGER.error('File %s (entry # %d) was not parsed' % (ifile, guid))
-            return False
-
-        LOGGER.info('Writing %s' % ofile)
-        content = markdown2.markdown(ifile['body'])
-        ifile['body'] = content
-        self.__gen_parsed_entries(guid)
-        ifile['previous'] = None
-#       If it's not the first parsed element
-        if self.parsed.index(guid):
-            #ifile['previous'] = '%s/%s.html' % (self.config['blog']['url'], self.stats['entry_list'][self.parsed[self.parsed.index(guid)]]['path'])
-            ifile['previous'] = '%s.html' % self.stats['entry_list'][self.parsed[self.parsed.index(guid) - 1]]['path']
-            LOGGER.debug('previous is %s' % ifile['previous'])
-        ifile['next'] = None
-#       If it's not the last element
-        if self.parsed.index(guid) < ( len(self.parsed) - 1 ):
-            #ifile['next'] = '%s/%s.html' % (self.config['blog']['url'], self.stats['entry_list'][self.parsed[self.parsed.index(guid) + 2]]['path'])
-            ifile['next'] = '%s.html' % self.stats['entry_list'][self.parsed[self.parsed.index(guid) + 1]]['path']
-            LOGGER.debug('next is %s' % ifile['next'])
-        tpl = self.tpl_env.get_template('entry.html')
-        f = codecs.open(ofile, 'wb', encoding='utf-8')
-        f.write(tpl.render(blog=self.config['blog'], entry=ifile, encoding='utf-8'))
+            rss_items.append(
+                PyRSS2Gen.RSSItem(
+                    title = y['title'],
+                    link = '%s/%s.html' % (self.config['blog']['url'],
+                        item['path']),
+                    description = markdown2.markdown(y['body']),
+                    pubDate = y['createtime']
+                )
+            )
+        rss = PyRSS2Gen.RSS2(
+            generator = '%s v%s using PyRSS2Gen' % (constants.app_name, constants.app_version),
+            title = title,
+            link = '%s/%s.html' % (self.config['blog']['url'], filename),
+            description = description,
+            lastBuildDate = datetime.datetime.now(),
+            items = rss_items)
+        f = codecs.open('%s/%s.xml' % (self.config['output'], filename), 'wb')
+        rss.write_xml(f)
         f.close()
-        self.stats['entry_list'][guid]['parsed'] = True
-        self.stats['last_entry_parsed'] = guid
-
-    def __gen_parsed_entries(self, e=None):
-        LOGGER.debug('Generating list of parsed entries')
-        for guid, entry in self.stats['entry_list'].items():
-            if entry['parsed'] and guid not in self.parsed:
-                self.parsed.append(guid)
-        if e and e not in self.parsed:
-            self.parsed.append(e)
-        self.parsed.sort()
 
     def parse_entries(self, entry_list={}):
         LOGGER.debug('Will parse %d entries' % len(entry_list))
         LOGGER.debug('Loading templates from %s' % self.templates)
         tpl = self.jinja2.get_template('entry.html')
+        dqs = {}
+        if 'feedsize' in self.config['blog'].keys():
+            feedsize = int(self.config['blog']['feedsize'])
+        else:
+            feedsize = 5
+        for k,v in self.stats['tags'].items():
+            dqs[k] = collections.deque(v, maxlen=feedsize)
+        if 'feed' not in self.stats.keys():
+            main_feed = collections.deque([], maxlen=feedsize)
+        else:
+            main_feed = collections.deque(self.stats['feed'], maxlen=feedsize)
+        update_tags = set()
         for guid, entry in entry_list.items():
             ofile = os.path.join(self.output, '%s.html' % entry['path'])
             ifile = os.path.join(self.source, '%s.yaml' % entry['path'])
@@ -147,7 +128,29 @@ class Parser(base.BareNaked):
                     pass
             self.stats['entry_list'][guid]['parsed'] = True
             self.stats['last_entry_parsed'] = guid
-        #self.update_stats()
+            main_feed.append(guid)
+            for tag in ifile['tags']:
+                update_tags.add(tag)
+                if tag in dqs.keys():
+                    dqs[tag].append(guid)
+                else:
+                    dqs[tag] = collections.deque([guid], maxlen=feedsize)
+        self.stats['feed'] = sorted(list(set(main_feed)))
+        for k,v in dqs.items():
+            self.stats['tags'][k] = sorted(list(set(v)))
+        if not os.path.isdir('%s/tags' % self.config['output']):
+            os.makedirs('%s/tags' % self.config['output'])
+        for tag in update_tags:
+            items = [ self.stats['entry_list'][_] for _ in self.stats['tags'][tag] ]
+            self.build_feed('tags/%s' % (tag,), '%s // %s' % (
+                self.config['blog']['title'], tag), '%s feed' % tag, items)
+        items = [ self.stats['entry_list'][_] for _ in main_feed ]
+        self.build_feed('rss2',
+            self.config['blog']['title'],
+            self.config['blog']['description'],
+            items
+        )
+        self.update_stats()
 
     def run(self, args):
         self.output = self.config.get('output', False)
