@@ -60,13 +60,6 @@ class Importer(base.BareNaked):
         fh = codecs.open(args.file, 'rb', encoding='utf-8')
         posts = yaml.load(fh.read())
         fh.close()
-        dqs = {}
-        if 'feedsize' in self.config['blog'].keys():
-            fs = int(self.config['blog']['feedsize'])
-        else:
-            fs = 5
-        for k,v in self.stats['tags'].items():
-            dqs[k] = collections.deque(v, maxlen=fs)
         for id,entry in posts.items():
             counter += 1
             if not counter % 5:
@@ -78,13 +71,5 @@ class Importer(base.BareNaked):
             stat['path'] = post_path
             stat['parsed'] = False
             self.stats['entry_list'][guid] = stat
-            for tag in entry['tags']:
-                if tag in dqs.keys():
-                    dqs[tag].append(id)
-                else:
-                    dqs[tag] = collections.deque([id], maxlen=fs)
-        for k,v in dqs.items():
-            self.stats['tags'][k] = list(v)
-
         self.update_stats()
 
