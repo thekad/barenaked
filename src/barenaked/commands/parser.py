@@ -128,23 +128,25 @@ class Parser(base.BareNaked):
                     pass
             self.stats['entry_list'][guid]['parsed'] = True
             self.stats['last_entry_parsed'] = guid
-            main_feed.append(guid)
+            if guid not in main_feed:
+                main_feed.append(guid)
             for tag in ifile['tags']:
                 update_tags.add(tag)
                 if tag in dqs.keys():
-                    dqs[tag].append(guid)
+                    if guid not in dqs[tag]:
+                        dqs[tag].append(guid)
                 else:
                     dqs[tag] = collections.deque([guid], maxlen=feedsize)
-        self.stats['feed'] = sorted(list(set(main_feed)))
+        self.stats['feed'] = sorted(list(main_feed))
         for k,v in dqs.items():
-            self.stats['tags'][k] = sorted(list(set(v)))
+            self.stats['tags'][k] = sorted(list(v))
         if not os.path.isdir('%s/tags' % self.config['output']):
             os.makedirs('%s/tags' % self.config['output'])
         for tag in update_tags:
             items = [ self.stats['entry_list'][_] for _ in self.stats['tags'][tag] ]
-            self.build_feed('tags/%s' % (tag,), '%s // %s' % (
-                self.config['blog']['title'], tag), '%s feed' % tag, items)
-        items = [ self.stats['entry_list'][_] for _ in main_feed ]
+            self.build_feed('tags/%s' % (tag,), '%s // %s tag' % (
+                self.config['blog']['title'], tag), '%s tag feed' % tag, items)
+        items = [ self.stats['entry_list'][_] for _ in self.stats['feed'] ]
         self.build_feed('rss2',
             self.config['blog']['title'],
             self.config['blog']['description'],
