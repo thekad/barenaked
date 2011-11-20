@@ -6,7 +6,6 @@
 # Copyright 2009, Jorge A Gallegos <kad@blegh.net>
 
 import codecs
-import collections
 import datetime
 import errno
 import jinja2
@@ -45,10 +44,22 @@ class Parser(base.BareNaked):
         parser.add_argument('-t', '--templates', help='Overrides the "templates" directive from the config file, '
                             'directory that holds the templates for parsing')
 
-    def build_feed(self, filename, title, description, items):
+    def build_tag_page(self, tag, filename, items):
+        tpl = self.jinja2.get_template('tag.html')
+        ifile = tpl.render(tag=tag, items=items, blog=self.config['blog'])
+        f = codecs.open('%s/%s' % (self.config['output'], filename), 'wb', encoding='utf-8')
+        f.write(ifile)
+        f.close()
+
+    def build_feed(self, filename, title, description, its):
+        if 'feedsize' in self.config['blog'].keys():
+            feedsize = int(self.config['blog']['feedsize'])
+        else:
+            feedsize = 5
         LOGGER.info('Building RSS Feed %s' % (filename,))
         rss_items = []
-        for item in items:
+        items = sorted(its, reverse=True)
+        for item in items[:feedsize]:
             f = '%s/%s.yaml' % (self.config['source'], item['path'])
             f = codecs.open(f)
             y = yaml.safe_load(f.read())
@@ -78,16 +89,12 @@ class Parser(base.BareNaked):
         LOGGER.debug('Loading templates from %s' % self.templates)
         tpl = self.jinja2.get_template('entry.html')
         dqs = {}
-        if 'feedsize' in self.config['blog'].keys():
-            feedsize = int(self.config['blog']['feedsize'])
-        else:
-            feedsize = 5
         for k,v in self.stats['tags'].items():
-            dqs[k] = collections.deque(v, maxlen=feedsize)
+            dqs[k] = set(v)
         if 'feed' not in self.stats.keys():
-            main_feed = collections.deque([], maxlen=feedsize)
+            main_feed = set()
         else:
-            main_feed = collections.deque(self.stats['feed'], maxlen=feedsize)
+            main_feed = set(self.stats['feed'])
         update_tags = set()
         for guid, entry in entry_list.items():
             ofile = os.path.join(self.output, '%s.html' % entry['path'])
@@ -129,14 +136,14 @@ class Parser(base.BareNaked):
             self.stats['entry_list'][guid]['parsed'] = True
             self.stats['last_entry_parsed'] = guid
             if guid not in main_feed:
-                main_feed.append(guid)
+                main_feed.add(guid)
             for tag in ifile['tags']:
                 update_tags.add(tag)
                 if tag in dqs.keys():
                     if guid not in dqs[tag]:
-                        dqs[tag].append(guid)
+                        dqs[tag].add(guid)
                 else:
-                    dqs[tag] = collections.deque([guid], maxlen=feedsize)
+                    dqs[tag] = set([guid])
         self.stats['feed'] = sorted(list(main_feed))
         for k,v in dqs.items():
             self.stats['tags'][k] = sorted(list(v))
@@ -146,6 +153,7 @@ class Parser(base.BareNaked):
             items = [ self.stats['entry_list'][_] for _ in self.stats['tags'][tag] ]
             self.build_feed('tags/%s' % (tag,), '%s // %s tag' % (
                 self.config['blog']['title'], tag), '%s tag feed' % tag, items)
+            self.build_tag_page(tag, 'tags/%s.html' % (tag,), items)
         items = [ self.stats['entry_list'][_] for _ in self.stats['feed'] ]
         self.build_feed('rss2',
             self.config['blog']['title'],
