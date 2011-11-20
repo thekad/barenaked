@@ -60,6 +60,7 @@ class Importer(base.BareNaked):
         fh = codecs.open(args.file, 'rb', encoding='utf-8')
         posts = yaml.load(fh.read())
         fh.close()
+        counter = 0
         for id,entry in posts.items():
             counter += 1
             if not counter % 5:
