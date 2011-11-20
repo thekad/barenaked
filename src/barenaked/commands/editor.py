@@ -189,6 +189,7 @@ class Editor(base.BareNaked):
             stat = {}
             stat['path'] = post_path
             stat['parsed'] = False
+            stat['title'] = self.post['title']
             self.stats['entry_list'][guid] = stat
             self.update_stats()
         else:
