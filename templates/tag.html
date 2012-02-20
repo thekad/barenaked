@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+    {%- block title %}{{tag}} tag page{% endblock title %}
+    {%- block content %}
+        <h1>{{ tag|capitalize }}</h1>
+        <ul style="height: 500px; overflow: auto;">
+        {%- for item in items %}
+          <li><strong><a href="{{ blog.url }}/{{ item.path }}.html">{{ item.title }}</a></strong></li>
+        {%- endfor %}
+        </ul>
+    {%- endblock content %}
+<!--{#
+vim: tabstop=2 softtabstop=2 expandtab shiftwidth=2 fileencoding=utf-8
+#}-->

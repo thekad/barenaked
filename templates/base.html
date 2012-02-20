@@ -1,0 +1,44 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+      "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <title>{% block title %}{% endblock title %} - {{ blog.title }}</title>
+    <link rel="stylesheet" type="text/css" href="{{ blog.media }}/style.css" media="screen" />
+    <meta name="description" content="{{ blog.description }}" />
+    <meta http-equiv="Content-Type" content="application/xhtml+xml;charset=UTF-8" />
+    <meta name="keywords" content="{{ blog.tags|join(', ') }}" />
+  {%- block head %}
+  {%- endblock head %}
+  </head>
+  <body>
+    <div id="header">
+      <h1>{{ blog.title }}</h1>
+      <ul id="nav">
+        {%- for tab in blog.tabs %}
+        <li><a href="{{tab.href}}">{{ tab.title }}</a></li>
+        {%- endfor %}
+      </ul>
+    </div>
+    <div id="content">
+      <div id="left">
+        {%- block content %}
+        {%- endblock %}
+      </div>
+      <div id="right">
+        {%- block side %}
+        {%- endblock %}
+        <div class="box">
+          <h2>Blurb:</h2>
+          <p>This XHTML/CSS Template was inspired by the great NiftyCube layouts. It is released under GPL and it is xhtml/css valid (I hope).</p>
+        </div>
+        <div class="box">
+          <div style="font-size: 0.8em;">Design based on <a href="http://www.minimalistic-design.net">Minimalistic Design</a></div>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>
+<!-- {#
+vim: tabstop=2 softtabstop=2 expandtab shiftwidth=2 fileencoding=utf-8
+#} -->

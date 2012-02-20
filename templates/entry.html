@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+    {%- block title %}{{entry.title}}{% endblock title %}
+    {%- block head %}
+    <meta name="keywords" content="{{ entry.tags|join(', ') }}" />
+    {%- endblock head %}
+    {%- block content %}
+        <h2>{{ entry.title }}</h2>
+        {{ entry.body }}
+        <div class="note">Posted on {{ entry.createtime.strftime('%Y-%m-%d') }} by {{ entry.author }}</div>
+    {%- endblock content %}
+    {%- block side %}
+        <div class="box">
+          <h2>More posts like this:</h2>
+          <ul>
+            {%- for tag in entry.tags %}
+            <li class="tagcloud"><a href="{{ blog.url }}/tags/{{tag}}.html">{{tag}}</a></li>
+            {%- endfor %}
+          </ul>
+        </div>
+        <div class="box">
+          <h2><a href="{{blog.url}}/calendar/{{entry.createtime.strftime('%Y-%m')}}.html">More from the same month</a></h2>
+        </div>
+    {%- endblock side %}
+<!--{#
+vim: tabstop=2 softtabstop=2 expandtab shiftwidth=2 fileencoding=utf-8
+#}-->
