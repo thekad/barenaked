@@ -22,6 +22,7 @@ CONF = {
     'repo': None,
 }
 
+# Load configuration
 cfg_file = os.environ.get('BARERC', '~/.barerc')
 cfg_file = os.path.realpath(os.path.expanduser(cfg_file))
 if os.path.isfile(cfg_file):
@@ -33,12 +34,20 @@ if os.path.isfile(cfg_file):
 
 bare = bottle.Bottle()
 
+# Get the requested file from memcache or git
+def get_file(path):
+    mc = memcache.Client(CONF['memcached'])
+    contents = mc.get(path)
+    if not contents:
+        repo = git.Repo(CONF['repo'])
+
+
 @bare.route('/')
 @bare.route('/HEAD')
 def head():
     """Returns the tip of the configured head in git"""
 
-    return 'Holla!'
+    return get_file('foo')
 
 bottle.run(bare, host=CONF['host'], port=CONF['port'], reloader=CONF['reload'])
 
