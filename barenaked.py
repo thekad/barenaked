@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 #
-# -*- mode: python; sh-basic-offset: 4; indent-tabs-mode: nil; coding: utf-8 -*-
+# -*- mode:python; sh-basic-offset:4; indent-tabs-mode:nil; coding:utf-8 -*-
 # vim:set tabstop=4 softtabstop=4 expandtab shiftwidth=4 fileencoding=utf-8:
 #
 
@@ -18,7 +18,7 @@ CONF = {
     'port': 8668,
     'reload': True,
     'branch': 'master',
-    'memcached': ['localhost:11211',],
+    'memcached': ['localhost:11211', ],
     'repo': None,
 }
 
@@ -34,8 +34,9 @@ if os.path.isfile(cfg_file):
 
 bare = bottle.Bottle()
 
-# Get the requested file from memcache or git
+
 def get_file(path):
+    "Get the requested content from git or memcache"
     mc = memcache.Client(CONF['memcached'])
     contents = mc.get(path)
     if not contents:
