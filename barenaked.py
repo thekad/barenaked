@@ -25,7 +25,7 @@ CONF = {
     'hash': '5832e5780c4e6341872d070aa076a419',
 }
 
-format='%(filename)s:%(lineno)d - %(levelname)s: %(message)s'
+format = '%(filename)s:%(lineno)d - %(levelname)s: %(message)s'
 if 'BAREDEBUG' in os.environ.keys():
     logging.basicConfig(level=logging.DEBUG, format=format)
 else:
@@ -59,6 +59,7 @@ def get_file_from_key(key=None):
         stats = commit.stats
         filename = stats.files.keys()[0]
     return commit, filename
+
 
 def get_blob_data(commit, filename):
     "Get the commit blob given a path"
@@ -125,8 +126,6 @@ def get_file(key=None):
             content = markdown2.markdown(blob)
             html = bottle.template('post', title=title, message=message,
                 content=content, conf=CONF)
-            print title, message
-            return html
 #           Set these in memory for next time
             if key:
                 LOGGER.debug('Setting key %s' % (key, ))
