@@ -20,7 +20,6 @@ CONF = {
     'memcached': ['localhost:11211', ],
     'repo': None,
     'url': None,
-    'static': None,
     'subdir': 'posts',
     'hash': '5832e5780c4e6341872d070aa076a419',
 }
@@ -37,6 +36,7 @@ LOGGER = logging.getLogger('barenaked')
 cfg_file = os.environ.get('BARERC', '~/.barerc')
 cfg_file = os.path.realpath(os.path.expanduser(cfg_file))
 if os.path.isfile(cfg_file):
+    LOGGER.debug('Loading %s' % (cfg_file, ))
     cfg_file = open(os.path.realpath(os.path.expanduser(cfg_file)), 'rb')
     conf = json.load(cfg_file)
     cfg_file.close()
@@ -85,7 +85,8 @@ def favicon():
 
 @bare.error(404)
 def error404(message=''):
-    return message
+    html = bottle.template('404', message=message)
+    return html
 
 
 @bare.error(401)
@@ -101,6 +102,24 @@ def clear_cache(hash=None):
         return error401('You lack the appropriate privileges')
     bottle.TEMPLATES.clear()
     return 'Template cache cleared'
+
+
+@bare.route('/restricted/<hash>/dump_config')
+def dump_config(hash=None):
+    "Dumps the current loaded configuration"
+
+    if hash != CONF['hash']:
+        return error401('You lack the appropriate privileges')
+    return CONF
+
+
+@bare.route('/static/:path#.+#', name='static')
+def serve_static(path):
+    "Serve static files if not configured on the web server"
+
+    real_path = os.path.realpath(CONF['static'])
+    LOGGER.debug('Serving static file from %s/%s' % (real_path, path,))
+    return bottle.static_file(path, root=real_path)
 
 
 @bare.route('/<key>')
@@ -125,7 +144,8 @@ def get_file(key=None):
         if blob:
             content = markdown2.markdown(blob)
             html = bottle.template('post', title=title, message=message,
-                content=content, conf=CONF)
+                content=content, conf=CONF, author=commit.author.name,
+                email=commit.author.email, previous=commit.parents[0].hexsha)
 #           Set these in memory for next time
             if key:
                 LOGGER.debug('Setting key %s' % (key, ))
@@ -149,4 +169,3 @@ def head():
     return get_file()
 
 bottle.run(bare, host=CONF['host'], port=CONF['port'], reloader=CONF['reload'])
-

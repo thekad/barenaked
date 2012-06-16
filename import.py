@@ -96,4 +96,3 @@ if __name__ == '__main__':
     args = ap.parse_args()
     sys.exit(main(input=args.input, output=os.path.expanduser(args.output),
         prefix=args.prefix))
-
