@@ -81,8 +81,10 @@ def main(input, output, prefix='posts'):
         os.makedirs(os.path.join(output, prefix))
     for idx, post in posts.items():
         fpath = write_file(output, prefix, post)
+        os.environ['GIT_AUTHOR_DATE'] = post['createtime'].isoformat()
         git_sha = commit(index, fpath, post)
         LOGGER.debug('Committed new git sha %s' % (git_sha, ))
+    os.environ.pop('GIT_AUTHOR_DATE')
     LOGGER.info('Done.')
 
 if __name__ == '__main__':
