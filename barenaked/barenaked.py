@@ -38,6 +38,7 @@ else:
 
 LOGGER = logging.getLogger('barenaked')
 
+
 def load_config():
 #   Load configuration
     cfg_file = os.environ.get('BARERC', '~/.barerc')
@@ -162,7 +163,8 @@ def get_file(key=None):
         if blob:
             content = markdown2.markdown(blob)
             dd = datetime.datetime.utcfromtimestamp(commit.authored_date)
-            html = bottle.template('post', title=title, message=message,
+            html = bottle.template(
+                'post', title=title, message=message,
                 content=content, conf=CONF, author=commit.author, pub_date=dd,
                 recent=get_posts(CONF['recent_posts']),
             )
@@ -201,14 +203,16 @@ def get_posts(limit=None):
         LOGGER.debug('Adding "%s" to the feed..."' % (title,))
         slug = '.'.join(os.path.basename(filename).split('.')[:-1])
         dd = datetime.datetime.utcfromtimestamp(commit.authored_date)
-        posts.append({
-            'title': title,
-            'slug': slug,
-            'blob': blob,
-            'date':dd,
-            'author': commit.author,
-            'commit': commit,
-        })
+        posts.append(
+            {
+                'title': title,
+                'slug': slug,
+                'blob': blob,
+                'date': dd,
+                'author': commit.author,
+                'commit': commit,
+            }
+        )
     return posts
 
 
@@ -238,4 +242,7 @@ def rss():
 
 
 def main():
-    bottle.run(bare, host=CONF['bind_host'], port=CONF['bind_port'], reloader=CONF['bottle_reload'])
+    bottle.run(
+        bare, host=CONF['bind_host'],
+        port=CONF['bind_port'], reloader=CONF['bottle_reload']
+    )
