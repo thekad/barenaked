@@ -38,17 +38,19 @@ else:
 
 LOGGER = logging.getLogger('barenaked')
 
-# Load configuration
-cfg_file = os.environ.get('BARERC', '~/.barerc')
-cfg_file = os.path.realpath(os.path.expanduser(cfg_file))
-if os.path.isfile(cfg_file):
-    LOGGER.debug('Loading %s' % (cfg_file, ))
-    cfg_file = open(os.path.realpath(os.path.expanduser(cfg_file)), 'rb')
-    conf = json.load(cfg_file)
-    cfg_file.close()
-    for k, v in conf.items():
-        CONF[k] = v
+def load_config():
+#   Load configuration
+    cfg_file = os.environ.get('BARERC', '~/.barerc')
+    cfg_file = os.path.realpath(os.path.expanduser(cfg_file))
+    if os.path.isfile(cfg_file):
+        LOGGER.debug('Loading %s' % (cfg_file, ))
+        cfg_file = open(os.path.realpath(os.path.expanduser(cfg_file)), 'rb')
+        conf = json.load(cfg_file)
+        cfg_file.close()
+        for k, v in conf.items():
+            CONF[k] = v
 
+load_config()
 if not CONF['git_repo'] or not CONF['blog_url']:
     raise KeyError('Need repo path and url')
 
@@ -98,6 +100,16 @@ def error404(message=''):
 @bare.error(401)
 def error401(message=''):
     return message
+
+
+@bare.route('/restricted/<hash>/reload_config')
+def reload_config(hash=None):
+    "Reloads the configuration"
+
+    if hash != CONF['hash']:
+        return error401('You lack the appropriate privileges')
+    load_config()
+    return 'Config reloaded'
 
 
 @bare.route('/restricted/<hash>/clear_cache')
@@ -218,9 +230,12 @@ def rss():
             author_name=post['author'].name,
             author_email=post['author'].email,
             unique_id=post['commit'].hexsha,
+            item_copyright=post['author'].name,
         )
 
+    LOGGER.info('Generated RSS with %d items' % (feed.num_items(),))
     return feed.writeString('utf-8')
 
 
-bottle.run(bare, host=CONF['bind_host'], port=CONF['bind_port'], reloader=CONF['bottle_reload'])
+def main():
+    bottle.run(bare, host=CONF['bind_host'], port=CONF['bind_port'], reloader=CONF['bottle_reload'])

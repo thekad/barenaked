@@ -19,6 +19,11 @@ setup(
     license='WTFPL',
     platforms='any',
     zip_safe=False,
+    entry_points={
+        'console_scripts': [
+            'barenaked-server=barenaked.barenaked:main'
+        ],
+    },
     classifiers=[
         'Environment :: Web Environment',
         'Intended Audience :: Developers',
@@ -27,7 +32,7 @@ setup(
         'Programming Language :: Python',
         'Topic :: Internet :: WWW/HTTP :: Dynamic Content',
     ],
-    'install_requires': [
+    install_requires=[
         'distribute',
         'bottle==0.11.6',
         'feedgenerator==1.7',
