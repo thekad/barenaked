@@ -8,10 +8,10 @@
         <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
         <title>{{title}}</title>
         <meta name="description" content="">
-        <meta name="author" content="{{author}}">
+        <meta name="author" content="{{author.name}}">
         <meta name="viewport" content="width=device-width">
-        <link rel="stylesheet" href="{{conf['url']}}/static/style.css">
-        <script src="{{conf['url']}}/static/modernizr-2.5.3.min.js"></script>
+        <link rel="stylesheet" href="{{conf['blog_url']}}/static/style.css">
+        <script src="{{conf['blog_url']}}/static/modernizr-2.5.3.min.js"></script>
     </head>
     <body>
         <header>
@@ -21,8 +21,8 @@
             {{!content}}
         </div>
         <footer>
-            <p class="author">Copyright &copy; {{author}}</p>
-            <p class="date">{{author}}</p>
+            <p class="author">Copyright &copy; {{author.name}}</p>
+            <p class="date">Published on: {{pub_date}}</p>
         </footer>
     </body>
 </html>
