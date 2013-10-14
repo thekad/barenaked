@@ -5,6 +5,8 @@
 #
 
 import bottle
+import datetime
+import feedgenerator
 import git
 import json
 import logging
@@ -13,15 +15,19 @@ import memcache
 import os
 
 CONF = {
-    'host': 'localhost',
-    'port': 8668,
-    'reload': True,
-    'branch': 'master',
-    'memcached': ['localhost:11211', ],
-    'repo': None,
-    'url': None,
-    'subdir': 'posts',
+    'bind_host': 'localhost',
+    'bind_port': 8668,
+    'bottle_reload': True,
+    'git_repo': None,
+    'git_branch': 'master',
+    'memcached_servers': ['localhost:11211', ],
+    'blog_url': None,
+    'blog_title': 'A bare-naked blog',
+    'blog_desc': 'Just another git-backed blog',
+    'git_subdir': 'posts',
     'hash': '5832e5780c4e6341872d070aa076a419',
+    'rss_limit': None,
+    'recent_posts': 10,
 }
 
 format = '%(filename)s:%(lineno)d - %(levelname)s: %(message)s'
@@ -43,17 +49,17 @@ if os.path.isfile(cfg_file):
     for k, v in conf.items():
         CONF[k] = v
 
-if not CONF['repo'] or not CONF['url']:
+if not CONF['git_repo'] or not CONF['blog_url']:
     raise KeyError('Need repo path and url')
 
 bare = bottle.Bottle()
+REPO = git.Repo(CONF['git_repo'])
 
 
 def get_file_from_key(key=None):
-    repo = git.Repo(CONF['repo'])
-    commit = repo.commit(CONF['branch'])
+    commit = REPO.commit(CONF['git_branch'])
     if key:
-        filename = '%s/%s.markdown' % (CONF['subdir'], key, )
+        filename = '%s/%s.markdown' % (CONF['git_subdir'], key, )
     else:
 #       Find blob path from the tip of the configured branch
         stats = commit.stats
@@ -117,7 +123,7 @@ def dump_config(hash=None):
 def serve_static(path):
     "Serve static files if not configured on the web server"
 
-    real_path = os.path.realpath(CONF['static'])
+    real_path = os.path.realpath(os.path.expanduser(CONF['static']))
     LOGGER.debug('Serving static file from %s/%s' % (real_path, path,))
     return bottle.static_file(path, root=real_path)
 
@@ -126,13 +132,13 @@ def serve_static(path):
 def get_file(key=None):
     "Get the requested content from git or memcache"
 
-    mc = memcache.Client(CONF['memcached'])
+    mc = memcache.Client(CONF['memcached_servers'])
     LOGGER.debug('Key: %s' % (key, ))
 #   try to get from memcached
     if key:
-        content = mc.get(key)
+        content = mc.get(str(key))
     else:
-        content = mc.get('%(branch)s@HEAD' % CONF)
+        content = mc.get(str('%(git_branch)s@HEAD' % CONF))
     if content:
         LOGGER.debug('Found content in memcache')
         return content
@@ -143,19 +149,21 @@ def get_file(key=None):
         title, message, blob = get_blob_data(commit, filename)
         if blob:
             content = markdown2.markdown(blob)
+            dd = datetime.datetime.utcfromtimestamp(commit.authored_date)
             html = bottle.template('post', title=title, message=message,
-                content=content, conf=CONF, author=commit.author.name,
-                email=commit.author.email, previous=commit.parents[0].hexsha)
+                content=content, conf=CONF, author=commit.author, pub_date=dd,
+                recent=get_posts(CONF['recent_posts']),
+            )
 #           Set these in memory for next time
             if key:
                 LOGGER.debug('Setting key %s' % (key, ))
-                mc.set(key, html)
+                mc.set(str(key), html)
             else:
                 key = os.path.splitext(os.path.basename(filename))[0]
                 LOGGER.debug('Setting key %s' % (key, ))
-                LOGGER.debug('Setting key %(branch)s@HEAD' % CONF)
-                mc.set(key, html)
-                mc.set('%(branch)s@HEAD' % CONF, html)
+                LOGGER.debug('Setting key %(git_branch)s@HEAD' % CONF)
+                mc.set(str(key), html)
+                mc.set(str('%(git_branch)s@HEAD' % CONF), html)
             return html
         else:
             return error404('Could not find this post')
@@ -168,4 +176,51 @@ def head():
 
     return get_file()
 
-bottle.run(bare, host=CONF['host'], port=CONF['port'], reloader=CONF['reload'])
+
+def get_posts(limit=None):
+    posts = []
+    kwargs = {}
+    if limit:
+        kwargs['max_count'] = limit
+    for commit in REPO.iter_commits(CONF['git_branch'], **kwargs):
+        stats = commit.stats
+        filename = stats.files.keys()[0]
+        title, message, blob = get_blob_data(commit, filename)
+        LOGGER.debug('Adding "%s" to the feed..."' % (title,))
+        slug = '.'.join(os.path.basename(filename).split('.')[:-1])
+        dd = datetime.datetime.utcfromtimestamp(commit.authored_date)
+        posts.append({
+            'title': title,
+            'slug': slug,
+            'blob': blob,
+            'date':dd,
+            'author': commit.author,
+            'commit': commit,
+        })
+    return posts
+
+
+@bare.route('/rss.xml')
+def rss():
+    limit = CONF['rss_limit']
+    LOGGER.debug('Generating %s RSS entries' % (limit or 'unlimited',))
+    feed = feedgenerator.Rss201rev2Feed(
+        title=CONF['blog_title'],
+        link=CONF['blog_url'],
+        description=CONF['blog_desc'],
+    )
+    for post in get_posts(limit):
+        feed.add_item(
+            title=post['title'],
+            link='%s/%s' % (CONF['blog_url'], post['slug'],),
+            description=post['blob'],
+            pubdate=post['date'],
+            author_name=post['author'].name,
+            author_email=post['author'].email,
+            unique_id=post['commit'].hexsha,
+        )
+
+    return feed.writeString('utf-8')
+
+
+bottle.run(bare, host=CONF['bind_host'], port=CONF['bind_port'], reloader=CONF['bottle_reload'])
